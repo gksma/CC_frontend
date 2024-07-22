@@ -1,125 +1,424 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
+// import 'settings_page.dart';
+// import 'add_contact_page.dart';
+// import 'contacts_page.dart';
+// import 'recent_calls_page.dart';
+// import 'calling_page.dart';
+// import 'incoming_call_page.dart';
+// import 'incoming_call_locked_page.dart';
+
+
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: DialPadScreen(),
+      // routes: {
+      //   '/settings': (context) => SettingsPage(),
+      //   '/add_contact': (context) => AddContactPage(),
+      //   '/contacts': (context) => ContactsPage(),
+      //   '/recent_calls': (context) => RecentCallsPage(),
+      //   '/calling': (context) => CallingPage(),
+      //   '/incoming_call': (context) => IncomingCallPage(),
+      //   '/incoming_call_locked': (context) => IncomingCallLockedPage()
+      // },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class PermissionCheckScreen extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _PermissionCheckScreenState createState() => _PermissionCheckScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+class _PermissionCheckScreenState extends State<PermissionCheckScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showPermissionDialog();
     });
+  }
+
+  Future<void> _showPermissionDialog() async {
+    bool granted = await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('필수 권한 요청'),
+        content: Text('앱 사용 전 필수 권한들을 동의해야합니다.'),
+        actions: [
+          TextButton(
+            child: Text('확인'),
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+            },
+          ),
+        ],
+      ),
+    );
+
+    if (granted) {
+      await _requestPermissions();
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.phone,
+      Permission.contacts,
+      Permission.camera,
+      Permission.microphone,
+    ].request();
+
+    bool allGranted = statuses.values.every((status) => status.isGranted);
+
+    if (allGranted) {
+      Navigator.pushReplacementNamed(context, '/dialpad');
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text('권한 거부됨'),
+          content: Text('필수 권한을 모두 동의해야 앱을 사용할 수 있습니다.'),
+          actions: [
+            TextButton(
+              child: Text('종료'),
+              onPressed: () {
+                SystemNavigator.pop();
+              },
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    return Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+class DialPadScreen extends StatefulWidget {
+  @override
+  _DialPadScreenState createState() => _DialPadScreenState();
+}
+
+class _DialPadScreenState extends State<DialPadScreen> {
+  final TextEditingController _controller = TextEditingController();
+
+  void _onKeyPress(String value) {
+    setState(() {
+      String currentText = _controller.text.replaceAll('-', '');
+      if (value == 'back') {
+        if (currentText.isNotEmpty) {
+          currentText = currentText.substring(0, currentText.length - 1);
+        }
+      } else {
+        currentText += value;
+      }
+      _controller.text = _formatPhoneNumber(currentText);
+    });
+  }
+
+  String _formatPhoneNumber(String number) {
+    if (number.startsWith('010')) {
+      if (number.length > 3 && number.length <= 7) {
+        return number.substring(0, 3) + '-' + number.substring(3);
+      } else if (number.length > 7) {
+        return number.substring(0, 3) + '-' + number.substring(3, 7) + '-' + number.substring(7);
+      }
+    } else if (number.startsWith('02')) {
+      if (number.length == 9) {
+        return number.substring(0, 2) + '-' + number.substring(2, 5) + '-' + number.substring(5);
+      } else if (number.length == 10) {
+        return number.substring(0, 2) + '-' + number.substring(2, 6) + '-' + number.substring(6);
+      } else if (number.length > 2 && number.length < 9) {
+        return number.substring(0, 2) + '-' + number.substring(2);
+      }
+    } else {
+      if (number.length > 3 && number.length <= 6) {
+        return number.substring(0, 3) + '-' + number.substring(3);
+      } else if (number.length > 6) {
+        return number.substring(0, 3) + '-' + number.substring(3, 6) + '-' + number.substring(6);
+      }
+    }
+    return number;
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  void _makeVideoCall(String phoneNumber) {
+    // Video call functionality would go here, but it's highly dependent on the specific video call SDK being used.
+    // For example, you might use a package like 'flutter_webrtc' or another video call solution.
+    print('Making video call to $phoneNumber');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        toolbarHeight: 0,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          double dialPadFontSize = constraints.maxWidth * 0.04;
+          double subTextFontSize = constraints.maxWidth * 0.03;
+          return Column(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: TextField(
+                        controller: _controller,
+                        readOnly: true,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: dialPadFontSize),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 5,
+                child: GridView.builder(
+                  itemCount: 12,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 1.5,
+                  ),
+                  itemBuilder: (context, index) {
+                    if (index < 9) {
+                      return DialButton(
+                        text: '${index + 1}',
+                        subText: getDialButtonText(index + 1),
+                        dialPadFontSize: dialPadFontSize,
+                        subTextFontSize: subTextFontSize,
+                        onPressed: () => _onKeyPress('${index + 1}'),
+                      );
+                    } else if (index == 9) {
+                      return DialButton(
+                        text: '*',
+                        subText: '',
+                        dialPadFontSize: dialPadFontSize,
+                        subTextFontSize: subTextFontSize,
+                        onPressed: () => _onKeyPress('*'),
+                      );
+                    } else if (index == 10) {
+                      return DialButton(
+                        text: '0',
+                        subText: '+',
+                        dialPadFontSize: dialPadFontSize,
+                        subTextFontSize: subTextFontSize,
+                        onPressed: () => _onKeyPress('0'),
+                      );
+                    } else {
+                      return DialButton(
+                        text: '#',
+                        subText: '',
+                        dialPadFontSize: dialPadFontSize,
+                        subTextFontSize: subTextFontSize,
+                        onPressed: () => _onKeyPress('#'),
+                      );
+                    }
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.video_call, size: constraints.maxWidth * 0.1),
+                      onPressed: () {
+                        _makeVideoCall(_controller.text);
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.call, size: constraints.maxWidth * 0.1, color: Colors.green),
+                      onPressed: () {
+                        _makePhoneCall(_controller.text);
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, size: constraints.maxWidth * 0.1),
+                      onPressed: () => _onKeyPress('back'),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Spacer(),
+                    BottomIconButton(
+                      icon: Icons.add,
+                      label: '연락처 추가',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/add_contact');
+                      },
+                    ),
+                    Spacer(),
+                    BottomIconButton(
+                      icon: Icons.person,
+                      label: '연락처',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/contacts');
+                      },
+                    ),
+                    Spacer(),
+                    BottomIconButton(
+                      icon: Icons.dialpad,
+                      label: '키패드',
+                      onPressed: () {},
+                    ),
+                    Spacer(),
+                    BottomIconButton(
+                      icon: Icons.history,
+                      label: '최근 기록',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/recent_calls');
+                      },
+                    ),
+                    Spacer(),
+                    BottomIconButton(
+                      icon: Icons.settings,
+                      label: '설정',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/settings');
+                      },
+                    ),
+                    Spacer(),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String getDialButtonText(int number) {
+    switch (number) {
+      case 1:
+        return ' ';
+      case 2:
+        return 'ABC';
+      case 3:
+        return 'DEF';
+      case 4:
+        return 'GHI';
+      case 5:
+        return 'JKL';
+      case 6:
+        return 'MNO';
+      case 7:
+        return 'PQRS';
+      case 8:
+        return 'TUV';
+      case 9:
+        return 'WXYZ';
+      default:
+        return '';
+    }
+  }
+}
+
+class DialButton extends StatelessWidget {
+  final String text;
+  final String subText;
+  final double dialPadFontSize;
+  final double subTextFontSize;
+  final VoidCallback onPressed;
+
+  DialButton({
+    required this.text,
+    required this.subText,
+    required this.dialPadFontSize,
+    required this.subTextFontSize,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            text,
+            style: TextStyle(fontSize: dialPadFontSize, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            subText,
+            style: TextStyle(fontSize: subTextFontSize, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BottomIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  BottomIconButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon),
+          onPressed: onPressed,
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        Text(
+          label,
+          style: TextStyle(fontSize: 10),
+        ),
+      ],
     );
   }
 }
