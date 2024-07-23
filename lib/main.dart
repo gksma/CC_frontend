@@ -13,10 +13,12 @@ import 'package:flutter/services.dart';
 
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -30,11 +32,14 @@ class MyApp extends StatelessWidget {
       //   '/incoming_call': (context) => IncomingCallPage(),
       //   '/incoming_call_locked': (context) => IncomingCallLockedPage()
       // },
+      theme: ThemeData(scaffoldBackgroundColor: Colors.white),
     );
   }
 }
 
 class PermissionCheckScreen extends StatefulWidget {
+  const PermissionCheckScreen({super.key});
+
   @override
   _PermissionCheckScreenState createState() => _PermissionCheckScreenState();
 }
@@ -53,11 +58,11 @@ class _PermissionCheckScreenState extends State<PermissionCheckScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('필수 권한 요청'),
-        content: Text('앱 사용 전 필수 권한들을 동의해야합니다.'),
+        title: const Text('필수 권한 요청'),
+        content: const Text('앱 사용 전 필수 권한들을 동의해야합니다.'),
         actions: [
           TextButton(
-            child: Text('확인'),
+            child: const Text('확인'),
             onPressed: () async {
               Navigator.of(context).pop(true);
             },
@@ -88,11 +93,11 @@ class _PermissionCheckScreenState extends State<PermissionCheckScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: Text('권한 거부됨'),
-          content: Text('필수 권한을 모두 동의해야 앱을 사용할 수 있습니다.'),
+          title: const Text('권한 거부됨'),
+          content: const Text('필수 권한을 모두 동의해야 앱을 사용할 수 있습니다.'),
           actions: [
             TextButton(
-              child: Text('종료'),
+              child: const Text('종료'),
               onPressed: () {
                 SystemNavigator.pop();
               },
@@ -105,7 +110,7 @@ class _PermissionCheckScreenState extends State<PermissionCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(
         child: CircularProgressIndicator(),
       ),
@@ -114,6 +119,8 @@ class _PermissionCheckScreenState extends State<PermissionCheckScreen> {
 }
 
 class DialPadScreen extends StatefulWidget {
+  const DialPadScreen({super.key});
+
   @override
   _DialPadScreenState createState() => _DialPadScreenState();
 }
@@ -122,39 +129,50 @@ class _DialPadScreenState extends State<DialPadScreen> {
   final TextEditingController _controller = TextEditingController();
 
   void _onKeyPress(String value) {
-    setState(() {
-      String currentText = _controller.text.replaceAll('-', '');
-      if (value == 'back') {
-        if (currentText.isNotEmpty) {
-          currentText = currentText.substring(0, currentText.length - 1);
-        }
-      } else {
-        currentText += value;
+  setState(() {
+    String currentText = _controller.text.replaceAll('-', '');
+
+    if (value == 'back') {
+      if (currentText.isNotEmpty) {
+        currentText = currentText.substring(0, currentText.length - 1);
       }
-      _controller.text = _formatPhoneNumber(currentText);
-    });
-  }
+    } else {
+      if (currentText.length >= 15) {
+        // 최대 자릿수를 초과했음을 알리는 메시지를 표시합니다.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('최대 자릿수를 초과했습니다.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return; // 더 이상 입력을 받지 않습니다.
+      }
+      currentText += value;
+    }
+    _controller.text = _formatPhoneNumber(currentText);
+  });
+}
 
   String _formatPhoneNumber(String number) {
     if (number.startsWith('010')) {
       if (number.length > 3 && number.length <= 7) {
-        return number.substring(0, 3) + '-' + number.substring(3);
+        return '${number.substring(0, 3)}-${number.substring(3)}';
       } else if (number.length > 7) {
-        return number.substring(0, 3) + '-' + number.substring(3, 7) + '-' + number.substring(7);
+        return '${number.substring(0, 3)}-${number.substring(3, 7)}-${number.substring(7)}';
       }
     } else if (number.startsWith('02')) {
       if (number.length == 9) {
-        return number.substring(0, 2) + '-' + number.substring(2, 5) + '-' + number.substring(5);
+        return '${number.substring(0, 2)}-${number.substring(2, 5)}-${number.substring(5)}';
       } else if (number.length == 10) {
-        return number.substring(0, 2) + '-' + number.substring(2, 6) + '-' + number.substring(6);
+        return '${number.substring(0, 2)}-${number.substring(2, 6)}-${number.substring(6)}';
       } else if (number.length > 2 && number.length < 9) {
-        return number.substring(0, 2) + '-' + number.substring(2);
+        return '${number.substring(0, 2)}-${number.substring(2)}';
       }
     } else {
       if (number.length > 3 && number.length <= 6) {
-        return number.substring(0, 3) + '-' + number.substring(3);
+        return '${number.substring(0, 3)}-${number.substring(3)}';
       } else if (number.length > 6) {
-        return number.substring(0, 3) + '-' + number.substring(3, 6) + '-' + number.substring(6);
+        return '${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}';
       }
     }
     return number;
@@ -193,7 +211,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                 flex: 2,
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
                     child: Align(
                       alignment: Alignment.center,
                       child: TextField(
@@ -201,7 +219,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                         readOnly: true,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: dialPadFontSize),
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           border: InputBorder.none,
                         ),
                       ),
@@ -213,7 +231,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                 flex: 5,
                 child: GridView.builder(
                   itemCount: 12,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     childAspectRatio: 1.5,
                   ),
@@ -283,7 +301,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Spacer(),
+                    const Spacer(),
                     BottomIconButton(
                       icon: Icons.add,
                       label: '연락처 추가',
@@ -291,7 +309,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                         Navigator.pushNamed(context, '/add_contact');
                       },
                     ),
-                    Spacer(),
+                    const Spacer(),
                     BottomIconButton(
                       icon: Icons.person,
                       label: '연락처',
@@ -299,13 +317,13 @@ class _DialPadScreenState extends State<DialPadScreen> {
                         Navigator.pushNamed(context, '/contacts');
                       },
                     ),
-                    Spacer(),
+                    const Spacer(),
                     BottomIconButton(
                       icon: Icons.dialpad,
                       label: '키패드',
                       onPressed: () {},
                     ),
-                    Spacer(),
+                    const Spacer(),
                     BottomIconButton(
                       icon: Icons.history,
                       label: '최근 기록',
@@ -313,7 +331,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                         Navigator.pushNamed(context, '/recent_calls');
                       },
                     ),
-                    Spacer(),
+                    const Spacer(),
                     BottomIconButton(
                       icon: Icons.settings,
                       label: '설정',
@@ -321,7 +339,7 @@ class _DialPadScreenState extends State<DialPadScreen> {
                         Navigator.pushNamed(context, '/settings');
                       },
                     ),
-                    Spacer(),
+                    const Spacer(),
                   ],
                 ),
               ),
@@ -365,7 +383,7 @@ class DialButton extends StatelessWidget {
   final double subTextFontSize;
   final VoidCallback onPressed;
 
-  DialButton({
+  const DialButton({super.key, 
     required this.text,
     required this.subText,
     required this.dialPadFontSize,
@@ -399,7 +417,7 @@ class BottomIconButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
 
-  BottomIconButton({
+  const BottomIconButton({super.key, 
     required this.icon,
     required this.label,
     required this.onPressed,
@@ -416,7 +434,7 @@ class BottomIconButton extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 10),
+          style: const TextStyle(fontSize: 10),
         ),
       ],
     );
