@@ -56,6 +56,30 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       );
+    } else {
+      setState(() {
+        _isCurtainCallOn = true;
+      });
+      await _saveCurtainCallState(true);
+    }
+  }
+
+  Future<void> _revokePermissions() async {
+    // 권한을 직접 취소하는 방법은 없지만, 내부적으로 상태를 취소된 것으로 처리
+    await _saveCurtainCallState(false);
+    setState(() {
+      _isCurtainCallOn = false;
+    });
+  }
+
+  Future<void> _checkAndRequestPermissions() async {
+    bool phoneGranted = await Permission.phone.isGranted;
+    bool contactsGranted = await Permission.contacts.isGranted;
+    bool cameraGranted = await Permission.camera.isGranted;
+    bool microphoneGranted = await Permission.microphone.isGranted;
+
+    if (!phoneGranted || !contactsGranted || !cameraGranted || !microphoneGranted) {
+      await _requestPermissions();
     }
   }
 
@@ -73,39 +97,29 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         automaticallyImplyLeading: false, // 뒤로가기 버튼 제거
-        actions: [
-          TextButton(
-            onPressed: () {
-              // 내 정보 편집 기능 추가
-            },
-            child: const Text(
-              '내 정보 편집',
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const SizedBox(height: 15),
+            const SizedBox(height: 15), // 높이를 키움
             Center(
               child: Column(
                 children: const [
-                  Icon(Icons.person, size: 75),
-                  SizedBox(height: 10),
-                  Text('홍길동', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text('010-1234-5678', style: TextStyle(fontSize: 13)),
+                  Icon(Icons.person, size: 75), // 크기를 키움
+                  SizedBox(height: 10), // 간격 추가
+                  Text('홍길동', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // 폰트 크기를 키움
+                  Text('010-1234-5678', style: TextStyle(fontSize: 13)), // 폰트 크기를 키움
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 30), // 높이를 키움
             Card(
+              color: Colors.grey[100], // 색상 설정
               elevation: 4,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(12.0), // 패딩을 키움
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -119,8 +133,10 @@ class _SettingsPageState extends State<SettingsPage> {
                     Switch(
                       value: _isCurtainCallOn, // 초기값 설정
                       onChanged: (value) async {
-                        if (value && !_isCurtainCallOn) {
-                          await _requestPermissions();
+                        if (value) {
+                          await _checkAndRequestPermissions();
+                        } else {
+                          await _revokePermissions();
                         }
                         setState(() {
                           _isCurtainCallOn = value;
