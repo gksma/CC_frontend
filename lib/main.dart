@@ -9,7 +9,7 @@ import 'page/recent_calls_page.dart';
 // import 'page/incoming_call_page.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // 플러그인 초기화
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
