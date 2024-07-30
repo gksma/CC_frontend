@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ContactsPage extends StatelessWidget {
   @override
@@ -15,12 +15,31 @@ class ContactsPage extends StatelessWidget {
             style: TextStyle(color: Colors.black),
           ),
         ),
-        automaticallyImplyLeading: false, // 뒤로가기 버튼 제거
+        automaticallyImplyLeading: false,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: Text('연락처 페이지 내용'),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                children: [
+                  ContactRecord(
+                    name: '김AA',
+                    phoneNumber: '010-1111-1111',
+                  ),
+                  ContactRecord(
+                    name: '이BB',
+                    phoneNumber: '010-2222-2222',
+                  ),
+                  ContactRecord(
+                    name: '박CC',
+                    phoneNumber: '010-3333-3333',
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: Padding(
@@ -41,7 +60,7 @@ class ContactsPage extends StatelessWidget {
               icon: Icons.person,
               label: '연락처',
               onPressed: () {
-                // 현재 페이지
+                Navigator.pushNamed(context, '/contacts');
               },
             ),
             const Spacer(),
@@ -76,12 +95,78 @@ class ContactsPage extends StatelessWidget {
   }
 }
 
+class ContactRecord extends StatelessWidget {
+  final String name;
+  final String phoneNumber;
+
+  const ContactRecord({
+    super.key,
+    required this.name,
+    required this.phoneNumber,
+  });
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.grey[100], // 색상 설정
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 3), // 간격 조정
+                Text(
+                  phoneNumber,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.phone,
+                color: Colors.black,
+              ),
+              onPressed: () => _makePhoneCall(phoneNumber),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class BottomIconButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
 
-  const BottomIconButton({super.key, 
+  const BottomIconButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,
