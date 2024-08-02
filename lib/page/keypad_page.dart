@@ -86,8 +86,11 @@ class _KeypadPageState extends State<KeypadPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          double dialPadFontSize = constraints.maxWidth * 0.04;
+          double dialPadFontSize = constraints.maxWidth * 0.06; // 크기 조정
           double subTextFontSize = constraints.maxWidth * 0.03;
+          double iconButtonSize = constraints.maxWidth * 0.1; // 원래 크기 유지
+          double gridSpacing = constraints.maxWidth * 0.17; // 간격 조정
+
           return Column(
             children: [
               Expanded(
@@ -113,10 +116,13 @@ class _KeypadPageState extends State<KeypadPage> {
               Expanded(
                 flex: 5,
                 child: GridView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: gridSpacing),
                   itemCount: 12,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
-                    childAspectRatio: 1.5,
+                    crossAxisSpacing: gridSpacing,
+                    mainAxisSpacing: gridSpacing,
+                    childAspectRatio: (constraints.maxWidth / constraints.maxHeight) * 1.5,
                   ),
                   itemBuilder: (context, index) {
                     if (index < 9) {
@@ -161,19 +167,19 @@ class _KeypadPageState extends State<KeypadPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.video_call, size: constraints.maxWidth * 0.1),
+                      icon: Icon(Icons.video_call, size: iconButtonSize),
                       onPressed: () {
                         _makeVideoCall(_controller.text);
                       },
                     ),
                     IconButton(
-                      icon: Icon(Icons.call, size: constraints.maxWidth * 0.1, color: Colors.green),
+                      icon: Icon(Icons.call, size: iconButtonSize, color: Colors.green),
                       onPressed: () {
                         _makePhoneCall(_controller.text);
                       },
                     ),
                     IconButton(
-                      icon: Icon(Icons.arrow_back, size: constraints.maxWidth * 0.1),
+                      icon: Icon(Icons.arrow_back, size: iconButtonSize),
                       onPressed: () => _onKeyPress('back'),
                     ),
                   ],

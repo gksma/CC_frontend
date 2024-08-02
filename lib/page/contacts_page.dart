@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactsPage extends StatelessWidget {
+  final List<Map<String, String>> _contacts = [
+    {"name": "김xx", "phone": "010-1234-5678"},
+    {"name": "이xx", "phone": "010-2345-6789"},
+    {"name": "박xx", "phone": "010-3456-7890"},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,30 +23,62 @@ class ContactsPage extends StatelessWidget {
         ),
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  ContactRecord(
-                    name: '김AA',
-                    phoneNumber: '010-1111-1111',
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          double iconSize = constraints.maxWidth * 0.15; // 타이틀 아래 연락처 아이콘 크기
+          double listIconSize = constraints.maxWidth * 0.07; // 리스트 아이콘 크기
+          double padding = constraints.maxWidth * 0.04;
+          double fontSize = constraints.maxWidth * 0.04;
+
+          return Column(
+            children: [
+              SizedBox(height: padding),
+              Icon(Icons.contacts, size: iconSize),
+              SizedBox(height: padding),
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.all(padding),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
                   ),
-                  ContactRecord(
-                    name: '이BB',
-                    phoneNumber: '010-2222-2222',
+                  child: Container(
+                    margin: const EdgeInsets.all(0.0),
+                    padding: EdgeInsets.symmetric(vertical: padding, horizontal: padding),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ListView.separated(
+                      itemCount: _contacts.length,
+                      separatorBuilder: (context, index) => Divider(
+                        color: Colors.grey[300],
+                        thickness: 1,
+                      ),
+                      itemBuilder: (context, index) {
+                        final contact = _contacts[index];
+                        return ListTile(
+                          title: Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
+                          subtitle: Text(contact['phone']!, style: TextStyle(fontSize: fontSize)),
+                          leading: Icon(Icons.person, size: listIconSize),
+                          trailing: IconButton(
+                            icon: Icon(Icons.call, size: listIconSize),
+                            onPressed: () {
+                              _makePhoneCall(contact['phone']!);
+                            },
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  ContactRecord(
-                    name: '박CC',
-                    phoneNumber: '010-3333-3333',
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -59,9 +97,7 @@ class ContactsPage extends StatelessWidget {
             BottomIconButton(
               icon: Icons.person,
               label: '연락처',
-              onPressed: () {
-                Navigator.pushNamed(context, '/contacts');
-              },
+              onPressed: () {},
             ),
             const Spacer(),
             BottomIconButton(
@@ -93,17 +129,6 @@ class ContactsPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class ContactRecord extends StatelessWidget {
-  final String name;
-  final String phoneNumber;
-
-  const ContactRecord({
-    super.key,
-    required this.name,
-    required this.phoneNumber,
-  });
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri url = Uri(scheme: 'tel', path: phoneNumber);
@@ -112,51 +137,6 @@ class ContactRecord extends StatelessWidget {
     } else {
       throw 'Could not launch $url';
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.grey[100], // 색상 설정
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 3), // 간격 조정
-                Text(
-                  phoneNumber,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.phone,
-                color: Colors.black,
-              ),
-              onPressed: () => _makePhoneCall(phoneNumber),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -178,7 +158,7 @@ class BottomIconButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon),
+          icon: Icon(icon, size: 20),
           onPressed: onPressed,
         ),
         Text(

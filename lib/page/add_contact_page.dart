@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AddContactPage extends StatefulWidget {
+  const AddContactPage({super.key});
+
   @override
   _AddContactPageState createState() => _AddContactPageState();
 }
@@ -82,87 +84,96 @@ class _AddContactPageState extends State<AddContactPage> {
         ),
         automaticallyImplyLeading: false,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          const Icon(Icons.person_add, size: 60), // 아이콘 크기 줄임
-          const SizedBox(height: 20),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.grey[100], // 배경색 설정
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ), // 위쪽만 둥글게 설정
-              ),
-              child: Container(
-                margin: const EdgeInsets.all(0.0), // 흰색 배경 마진 설정
-                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white, // 흰색 배경 설정
-                  borderRadius: BorderRadius.circular(16), // 위아래 모서리 둥글게
-                ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 8.0),
-                    Row(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          double padding = constraints.maxWidth * 0.04;
+          double margin = constraints.maxWidth * 0.02;
+          double iconSize = constraints.maxWidth * 0.15;
+          double fontSize = constraints.maxWidth * 0.04;
+
+          return Column(
+            children: [
+              SizedBox(height: padding),
+              Icon(Icons.person_add, size: iconSize),
+              SizedBox(height: padding),
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.all(padding),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                  ),
+                  child: Container(
+                    margin: const EdgeInsets.all(0.0),
+                    padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
                       children: [
-                        const Text(
-                          '       이름 >',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8), // 한 칸 띄우기
-                        Expanded(
-                          child: TextField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 5),
+                        Row(
+                          children: [
+                            const Text(
+                              '       이름 >',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8), // 한 칸 띄우기
+                            Expanded(
+                              child: TextField(
+                                controller: _nameController,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                        const Divider(height: 16.0), // 간격을 줄이기 위해 height 조정
+                        Row(
+                          children: [
+                            const Text(
+                              '전화번호 >',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8), // 한 칸 띄우기
+                            Expanded(
+                              child: TextField(
+                                controller: _phoneController,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                ),
+                                keyboardType: TextInputType.phone,
+                                onChanged: _onPhoneChanged,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8.0),
                       ],
                     ),
-                    const Divider(height: 8.0), // 간격을 줄이기 위해 height 조정
-                    Row(
-                      children: [
-                        const Text(
-                          '전화번호 >',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8), // 한 칸 띄우기
-                        Expanded(
-                          child: TextField(
-                            controller: _phoneController,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 5),
-                            ),
-                            keyboardType: TextInputType.phone,
-                            onChanged: _onPhoneChanged,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8.0),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: _saveContact,
-            child: const Text('저장'),
-          ),
-        ],
+              SizedBox(height: padding), // 아래쪽 여백 추가
+              ElevatedButton(
+                onPressed: _saveContact,
+                child: const Text('저장'),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -233,7 +244,7 @@ class BottomIconButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon, size: 20), // 아이콘 크기 줄임
+          icon: Icon(icon, size: 20),
           onPressed: onPressed,
         ),
         Text(
