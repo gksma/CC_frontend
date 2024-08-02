@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
@@ -98,59 +100,68 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         automaticallyImplyLeading: false, // 뒤로가기 버튼 제거
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 15), // 높이를 키움
-            Center(
-              child: Column(
-                children: const [
-                  Icon(Icons.person, size: 75), // 크기를 키움
-                  SizedBox(height: 10), // 간격 추가
-                  Text('홍길동', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // 폰트 크기를 키움
-                  Text('010-1234-5678', style: TextStyle(fontSize: 13)), // 폰트 크기를 키움
-                ],
-              ),
-            ),
-            const SizedBox(height: 30), // 높이를 키움
-            Card(
-              color: Colors.grey[100], // 색상 설정
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0), // 패딩을 키움
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('커튼콜 ON / OFF', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // 폰트 크기를 키움
-                        Text('커튼콜 기능 켜고 끄기\n(ON으로 설정 시, 시스템 전화 요청)', style: TextStyle(fontSize: 10)), // 폰트 크기를 키움
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          double padding = constraints.maxWidth * 0.04;
+          double iconSize = constraints.maxWidth * 0.2;
+          double fontSize = constraints.maxWidth * 0.04;
+          double switchFontSize = constraints.maxWidth * 0.035;
+
+          return Padding(
+            padding: EdgeInsets.all(padding),
+            child: Column(
+              children: [
+                SizedBox(height: padding),
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.person, size: iconSize),
+                      SizedBox(height: padding),
+                      Text('홍길동', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                      Text('010-1234-5678', style: TextStyle(fontSize: switchFontSize)),
+                    ],
+                  ),
+                ),
+                SizedBox(height: padding * 2),
+                Card(
+                  color: Colors.grey[100],
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: EdgeInsets.all(padding),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('커튼콜 ON / OFF', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                            Text('커튼콜 기능 켜고 끄기\n(ON으로 설정 시, 시스템 전화 요청)', style: TextStyle(fontSize: switchFontSize)),
+                          ],
+                        ),
+                        Switch(
+                          value: _isCurtainCallOn,
+                          onChanged: (value) async {
+                            if (value) {
+                              await _checkAndRequestPermissions();
+                            } else {
+                              await _revokePermissions();
+                            }
+                            setState(() {
+                              _isCurtainCallOn = value;
+                            });
+                            await _saveCurtainCallState(value);
+                          },
+                          activeColor: Colors.green,
+                        ),
                       ],
                     ),
-                    Switch(
-                      value: _isCurtainCallOn, // 초기값 설정
-                      onChanged: (value) async {
-                        if (value) {
-                          await _checkAndRequestPermissions();
-                        } else {
-                          await _revokePermissions();
-                        }
-                        setState(() {
-                          _isCurtainCallOn = value;
-                        });
-                        await _saveCurtainCallState(value);
-                      },
-                      activeColor: Colors.green, // 스위치 활성 색상 설정
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -193,9 +204,7 @@ class _SettingsPageState extends State<SettingsPage> {
             BottomIconButton(
               icon: Icons.settings,
               label: '설정',
-              onPressed: () {
-                // 현재 설정 페이지이므로 아무 작업도 수행하지 않음
-              },
+              onPressed: () {},
             ),
             const Spacer(),
           ],
@@ -210,7 +219,8 @@ class BottomIconButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const BottomIconButton({super.key, 
+  const BottomIconButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,
@@ -222,7 +232,7 @@ class BottomIconButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon),
+          icon: Icon(icon, size: 20),
           onPressed: onPressed,
         ),
         Text(

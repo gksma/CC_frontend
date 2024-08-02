@@ -22,10 +22,10 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const KeypadPage(),
-        '/settings': (context) => SettingsPage(),
-        '/add_contact': (context) => AddContactPage(),
+        '/settings': (context) => const SettingsPage(),
+        '/add_contact': (context) => const AddContactPage(),
         '/contacts': (context) => ContactsPage(),
-        '/recent_calls': (context) => RecentCallsPage(),
+        '/recent_calls': (context) => const RecentCallsPage(),
       },
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),
     );
