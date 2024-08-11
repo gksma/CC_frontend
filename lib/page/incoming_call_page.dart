@@ -33,7 +33,7 @@ class IncomingCallPage extends StatelessWidget {
                 Icons.person,
                 size: size.height * 0.15,
               ),
-              Spacer(),
+              const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -63,7 +63,7 @@ class IncomingCallPage extends StatelessWidget {
                   ),
                 ],
               ),
-              Divider(),
+              const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [

@@ -2,23 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RecentCallsPage extends StatelessWidget {
+  const RecentCallsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final double padding = screenSize.width * 0.04;
+    final double fontSize = screenSize.width * 0.045;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Align(
+        title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
             '최근 기록',
-            style: TextStyle(color: Colors.black),
+            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.5),
           ),
         ),
         automaticallyImplyLeading: false,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(padding),
         child: Column(
           children: [
             Expanded(
@@ -31,14 +37,14 @@ class RecentCallsPage extends StatelessWidget {
                     isMissed: false,
                   ),
                   CallRecord(
-                    name: '김AA',
-                    phoneNumber: '010-1111-1111',
+                    name: '김BB',
+                    phoneNumber: '010-1111-2222',
                     dateTime: '07-12 21:35',
                     isMissed: false,
                   ),
                   CallRecord(
-                    name: '김AA',
-                    phoneNumber: '010-1111-1111',
+                    name: '김CC',
+                    phoneNumber: '010-1111-3333',
                     dateTime: '07-12 21:30',
                     isMissed: true,
                   ),
@@ -124,12 +130,15 @@ class CallRecord extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final double fontSize = screenSize.width * 0.045;
+
     return Card(
       color: isMissed ? Colors.red[50] : Colors.grey[100], // 색상 설정
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: EdgeInsets.all(screenSize.width * 0.03),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -139,24 +148,24 @@ class CallRecord extends StatelessWidget {
                 Text(
                   name,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: fontSize,
                     fontWeight: FontWeight.bold,
                     color: isMissed ? Colors.red : Colors.black,
                   ),
                 ),
-                const SizedBox(height: 3), // 간격 조정
+                SizedBox(height: screenSize.height * 0.005),
                 Text(
                   phoneNumber,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: fontSize * 0.85,
                     color: isMissed ? Colors.red : Colors.black,
                   ),
                 ),
-                const SizedBox(height: 3), // 간격 조정
+                SizedBox(height: screenSize.height * 0.005),
                 Text(
                   dateTime,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: fontSize * 0.85,
                     color: isMissed ? Colors.red : Colors.black,
                   ),
                 ),
@@ -166,6 +175,7 @@ class CallRecord extends StatelessWidget {
               icon: Icon(
                 Icons.phone,
                 color: isMissed ? Colors.red : Colors.black,
+                size: screenSize.width * 0.07,
               ),
               onPressed: () => _makePhoneCall(phoneNumber),
             ),
@@ -190,16 +200,19 @@ class BottomIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double iconSize = MediaQuery.of(context).size.width * 0.06;
+    final double fontSize = MediaQuery.of(context).size.width * 0.03;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon),
+          icon: Icon(icon, size: iconSize),
           onPressed: onPressed,
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 10),
+          style: TextStyle(fontSize: fontSize),
         ),
       ],
     );

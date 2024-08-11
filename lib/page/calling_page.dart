@@ -4,7 +4,7 @@ class CallingPage extends StatelessWidget {
   final String contactName;
   final String contactNumber;
 
-  CallingPage({required this.contactName, required this.contactNumber});
+  const CallingPage({super.key, required this.contactName, required this.contactNumber});
 
   @override
   Widget build(BuildContext context) {
