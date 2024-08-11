@@ -28,7 +28,7 @@ class CallingLockedPage extends StatelessWidget {
                 '010-1234-5678',
                 style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
               ),
-              Spacer(),
+              const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [

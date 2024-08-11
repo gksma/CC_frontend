@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RecentCallsPage extends StatelessWidget {
+  const RecentCallsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,7 +25,7 @@ class RecentCallsPage extends StatelessWidget {
           children: [
             Expanded(
               child: ListView(
-                children: [
+                children: const [
                   CallRecord(
                     name: '김AA',
                     phoneNumber: '010-1111-1111',

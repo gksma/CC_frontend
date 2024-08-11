@@ -8,6 +8,8 @@ class ContactsPage extends StatelessWidget {
     {"name": "박xx", "phone": "010-3456-7890"},
   ];
 
+  ContactsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
