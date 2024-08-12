@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
         '/settings': (context) => const SettingsPage(),
         '/add_contact': (context) => const AddContactPage(),
         '/contacts': (context) => ContactsPage(),
-        '/recent_calls': (context) => const RecentCallsPage(),
+        '/recent_calls': (context) => RecentCallsPage(),
       },
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),
     );

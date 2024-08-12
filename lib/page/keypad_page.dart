@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class KeypadPage extends StatefulWidget {
@@ -10,6 +11,21 @@ class KeypadPage extends StatefulWidget {
 
 class _KeypadPageState extends State<KeypadPage> {
   final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.phone,
+      Permission.contacts,
+      Permission.camera,
+      Permission.microphone,
+    ].request();
+  }
 
   void _onKeyPress(String value) {
     setState(() {
@@ -60,7 +76,6 @@ class _KeypadPageState extends State<KeypadPage> {
     }
     return number;
   }
-
   Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri url = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(url)) {
@@ -69,10 +84,7 @@ class _KeypadPageState extends State<KeypadPage> {
       throw 'Could not launch $url';
     }
   }
-
   void _makeVideoCall(String phoneNumber) {
-    // Video call functionality would go here, but it's highly dependent on the specific video call SDK being used.
-    // For example, you might use a package like 'flutter_webrtc' or another video call solution.
     print('Making video call to $phoneNumber');
   }
 
@@ -86,10 +98,10 @@ class _KeypadPageState extends State<KeypadPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          double dialPadFontSize = constraints.maxWidth * 0.06; // 크기 조정
+          double dialPadFontSize = constraints.maxWidth * 0.06;
           double subTextFontSize = constraints.maxWidth * 0.03;
-          double iconButtonSize = constraints.maxWidth * 0.1; // 원래 크기 유지
-          double gridSpacing = constraints.maxWidth * 0.17; // 간격 조정
+          double iconButtonSize = constraints.maxWidth * 0.1;
+          double gridSpacing = constraints.maxWidth * 0.17;
 
           return Column(
             children: [
