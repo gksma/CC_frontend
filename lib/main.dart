@@ -7,6 +7,7 @@ import 'page/contacts_page.dart';
 import 'page/recent_calls_page.dart';
 // import 'page/incoming_call_locked_page.dart';
 // import 'page/incoming_call_page.dart';
+import 'page/user_edit_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         '/add_contact': (context) => const AddContactPage(),
         '/contacts': (context) => ContactsPage(),
         '/recent_calls': (context) => const RecentCallsPage(),
+        '/user_edit': (context) => const UserEditPage(),
       },
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),
     );

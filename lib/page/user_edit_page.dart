@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class AddContactPage extends StatefulWidget {
-  const AddContactPage({super.key});
+class UserEditPage extends StatefulWidget {
+  const UserEditPage({super.key});
 
   @override
-  _AddContactPageState createState() => _AddContactPageState();
+  _UserEditPageState createState() => _UserEditPageState();
 }
 
-class _AddContactPageState extends State<AddContactPage> {
+class _UserEditPageState extends State<UserEditPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
@@ -85,7 +85,7 @@ class _AddContactPageState extends State<AddContactPage> {
         title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '연락처 추가',
+            '내 정보 편집',
             style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
@@ -176,53 +176,6 @@ class _AddContactPageState extends State<AddContactPage> {
               ),
             ],
           ),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.add,
-              label: '연락처 추가',
-              onPressed: () {},
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.person,
-              label: '연락처',
-              onPressed: () {
-                Navigator.pushNamed(context, '/contacts');
-              },
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.dialpad,
-              label: '키패드',
-              onPressed: () {
-                Navigator.pushNamed(context, '/');
-              },
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.history,
-              label: '최근 기록',
-              onPressed: () {
-                Navigator.pushNamed(context, '/recent_calls');
-              },
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.settings,
-              label: '설정',
-              onPressed: () {
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-            const Spacer(),
-          ],
         ),
       ),
     );

@@ -67,7 +67,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _revokePermissions() async {
-    // 권한을 직접 취소하는 방법은 없지만, 내부적으로 상태를 취소된 것으로 처리
     await _saveCurtainCallState(false);
     setState(() {
       _isCurtainCallOn = false;
@@ -104,6 +103,14 @@ class _SettingsPageState extends State<SettingsPage> {
             style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit, color: Colors.black, size: iconSize * 0.4),
+            onPressed: () {
+              Navigator.pushNamed(context, '/user_edit');
+            },
+          ),
+        ],
         automaticallyImplyLeading: false,
       ),
       body: LayoutBuilder(

@@ -55,11 +55,11 @@ class RecentCallsPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: EdgeInsets.all(padding),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.add,
               label: '연락처 추가',
@@ -67,7 +67,7 @@ class RecentCallsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/add_contact');
               },
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.person,
               label: '연락처',
@@ -75,7 +75,7 @@ class RecentCallsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/contacts');
               },
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.dialpad,
               label: '키패드',
@@ -83,13 +83,13 @@ class RecentCallsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/');
               },
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.history,
               label: '최근 기록',
               onPressed: () {},
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.settings,
               label: '설정',
@@ -97,7 +97,7 @@ class RecentCallsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/settings');
               },
             ),
-            const Spacer(),
+            Spacer(),
           ],
         ),
       ),
