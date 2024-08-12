@@ -8,84 +8,83 @@ class ContactsPage extends StatelessWidget {
     {"name": "박xx", "phone": "010-3456-7890"},
   ];
 
+  ContactsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final double iconSize = screenSize.width * 0.15; // 타이틀 아래 연락처 아이콘 크기
+    final double listIconSize = screenSize.width * 0.07; // 리스트 아이콘 크기
+    final double padding = screenSize.width * 0.04;
+    final double fontSize = screenSize.width * 0.04;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Align(
+        title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
             '연락처',
-            style: TextStyle(color: Colors.black),
+            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.5),
           ),
         ),
         automaticallyImplyLeading: false,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          double iconSize = constraints.maxWidth * 0.15; // 타이틀 아래 연락처 아이콘 크기
-          double listIconSize = constraints.maxWidth * 0.07; // 리스트 아이콘 크기
-          double padding = constraints.maxWidth * 0.04;
-          double fontSize = constraints.maxWidth * 0.04;
-
-          return Column(
-            children: [
-              SizedBox(height: padding),
-              Icon(Icons.contacts, size: iconSize),
-              SizedBox(height: padding),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.all(padding),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(32),
-                      topRight: Radius.circular(32),
-                    ),
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.all(0.0),
-                    padding: EdgeInsets.symmetric(vertical: padding, horizontal: padding),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListView.separated(
-                      itemCount: _contacts.length,
-                      separatorBuilder: (context, index) => Divider(
-                        color: Colors.grey[300],
-                        thickness: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        final contact = _contacts[index];
-                        return ListTile(
-                          title: Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
-                          subtitle: Text(contact['phone']!, style: TextStyle(fontSize: fontSize)),
-                          leading: Icon(Icons.person, size: listIconSize),
-                          trailing: IconButton(
-                            icon: Icon(Icons.call, size: listIconSize),
-                            onPressed: () {
-                              _makePhoneCall(contact['phone']!);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+      body: Column(
+        children: [
+          SizedBox(height: padding),
+          Icon(Icons.contacts, size: iconSize),
+          SizedBox(height: padding),
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(padding),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(32 * (screenSize.width / 375)),
+                  topRight: Radius.circular(32 * (screenSize.width / 375)),
                 ),
               ),
-            ],
-          );
-        },
+              child: Container(
+                margin: EdgeInsets.all(0.0),
+                padding: EdgeInsets.symmetric(vertical: padding, horizontal: padding),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16 * (screenSize.width / 375)),
+                ),
+                child: ListView.separated(
+                  itemCount: _contacts.length,
+                  separatorBuilder: (context, index) => Divider(
+                    color: Colors.grey[300],
+                    thickness: 1,
+                  ),
+                  itemBuilder: (context, index) {
+                    final contact = _contacts[index];
+                    return ListTile(
+                      title: Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
+                      subtitle: Text(contact['phone']!, style: TextStyle(fontSize: fontSize)),
+                      leading: Icon(Icons.person, size: listIconSize),
+                      trailing: IconButton(
+                        icon: Icon(Icons.call, size: listIconSize),
+                        onPressed: () {
+                          _makePhoneCall(contact['phone']!);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: EdgeInsets.all(padding),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.add,
               label: '연락처 추가',
@@ -93,13 +92,13 @@ class ContactsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/add_contact');
               },
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.person,
               label: '연락처',
               onPressed: () {},
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.dialpad,
               label: '키패드',
@@ -107,7 +106,7 @@ class ContactsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/');
               },
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.history,
               label: '최근 기록',
@@ -115,7 +114,7 @@ class ContactsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/recent_calls');
               },
             ),
-            const Spacer(),
+            Spacer(),
             BottomIconButton(
               icon: Icons.settings,
               label: '설정',
@@ -123,7 +122,7 @@ class ContactsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/settings');
               },
             ),
-            const Spacer(),
+            Spacer(),
           ],
         ),
       ),
@@ -154,16 +153,19 @@ class BottomIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double fontSize = MediaQuery.of(context).size.width * 0.025;
+    final double iconSize = MediaQuery.of(context).size.width * 0.06;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon, size: 20),
+          icon: Icon(icon, size: iconSize),
           onPressed: onPressed,
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 10),
+          style: TextStyle(fontSize: fontSize),
         ),
       ],
     );

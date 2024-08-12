@@ -87,26 +87,27 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final double padding = screenSize.width * 0.04;
+    final double iconSize = screenSize.width * 0.2;
+    final double fontSize = screenSize.width * 0.045;
+    final double switchFontSize = screenSize.width * 0.035;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Align(
+        title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
             '설정',
-            style: TextStyle(color: Colors.black),
+            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
-        automaticallyImplyLeading: false, // 뒤로가기 버튼 제거
+        automaticallyImplyLeading: false,
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          double padding = constraints.maxWidth * 0.04;
-          double iconSize = constraints.maxWidth * 0.2;
-          double fontSize = constraints.maxWidth * 0.04;
-          double switchFontSize = constraints.maxWidth * 0.035;
-
           return Padding(
             padding: EdgeInsets.all(padding),
             child: Column(
@@ -228,16 +229,19 @@ class BottomIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double iconSize = MediaQuery.of(context).size.width * 0.06;
+    final double fontSize = MediaQuery.of(context).size.width * 0.03;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(icon, size: 20),
+          icon: Icon(icon, size: iconSize),
           onPressed: onPressed,
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 10),
+          style: TextStyle(fontSize: fontSize),
         ),
       ],
     );
