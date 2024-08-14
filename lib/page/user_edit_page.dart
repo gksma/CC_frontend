@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
-class AddContactPage extends StatefulWidget {
-  const AddContactPage({super.key});
+class UserEditPage extends StatefulWidget {
+  const UserEditPage({super.key});
 
   @override
-  _AddContactPageState createState() => _AddContactPageState();
+  _UserEditPageState createState() => _UserEditPageState();
 }
 
-class _AddContactPageState extends State<AddContactPage> {
+class _UserEditPageState extends State<UserEditPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
@@ -86,7 +85,7 @@ class _AddContactPageState extends State<AddContactPage> {
         title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '연락처 추가',
+            '내 정보 편집',
             style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
@@ -179,7 +178,39 @@ class _AddContactPageState extends State<AddContactPage> {
           ),
         ),
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0), // 연락처 추가 페이지가 선택된 상태로 설정
+    );
+  }
+}
+
+class BottomIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const BottomIconButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double iconSize = MediaQuery.of(context).size.width * 0.06;
+    final double fontSize = MediaQuery.of(context).size.width * 0.03;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: iconSize),
+          onPressed: onPressed,
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: fontSize),
+        ),
+      ],
     );
   }
 }

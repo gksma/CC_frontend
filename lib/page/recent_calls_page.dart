@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'common_navigation_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RecentCallsPage extends StatelessWidget {
@@ -54,53 +55,7 @@ class RecentCallsPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.add,
-              label: '연락처 추가',
-              onPressed: () {
-                Navigator.pushNamed(context, '/add_contact');
-              },
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.person,
-              label: '연락처',
-              onPressed: () {
-                Navigator.pushNamed(context, '/contacts');
-              },
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.dialpad,
-              label: '키패드',
-              onPressed: () {
-                Navigator.pushNamed(context, '/');
-              },
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.history,
-              label: '최근 기록',
-              onPressed: () {},
-            ),
-            const Spacer(),
-            BottomIconButton(
-              icon: Icons.settings,
-              label: '설정',
-              onPressed: () {
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-            const Spacer(),
-          ],
-        ),
-      ),
+      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 3),
     );
   }
 }
@@ -182,39 +137,6 @@ class CallRecord extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class BottomIconButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const BottomIconButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double iconSize = MediaQuery.of(context).size.width * 0.06;
-    final double fontSize = MediaQuery.of(context).size.width * 0.03;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(icon, size: iconSize),
-          onPressed: onPressed,
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: fontSize),
-        ),
-      ],
     );
   }
 }

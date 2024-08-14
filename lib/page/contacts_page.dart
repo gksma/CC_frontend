@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
 class ContactsPage extends StatelessWidget {
   final List<Map<String, String>> _contacts = [
@@ -79,53 +80,7 @@ class ContactsPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.all(padding),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Spacer(),
-            BottomIconButton(
-              icon: Icons.add,
-              label: '연락처 추가',
-              onPressed: () {
-                Navigator.pushNamed(context, '/add_contact');
-              },
-            ),
-            Spacer(),
-            BottomIconButton(
-              icon: Icons.person,
-              label: '연락처',
-              onPressed: () {},
-            ),
-            Spacer(),
-            BottomIconButton(
-              icon: Icons.dialpad,
-              label: '키패드',
-              onPressed: () {
-                Navigator.pushNamed(context, '/');
-              },
-            ),
-            Spacer(),
-            BottomIconButton(
-              icon: Icons.history,
-              label: '최근 기록',
-              onPressed: () {
-                Navigator.pushNamed(context, '/recent_calls');
-              },
-            ),
-            Spacer(),
-            BottomIconButton(
-              icon: Icons.settings,
-              label: '설정',
-              onPressed: () {
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-            Spacer(),
-          ],
-        ),
-      ),
+      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 1), // 연락처 페이지가 선택된 상태로 설정
     );
   }
 
@@ -136,38 +91,5 @@ class ContactsPage extends StatelessWidget {
     } else {
       throw 'Could not launch $url';
     }
-  }
-}
-
-class BottomIconButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const BottomIconButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double fontSize = MediaQuery.of(context).size.width * 0.025;
-    final double iconSize = MediaQuery.of(context).size.width * 0.06;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(icon, size: iconSize),
-          onPressed: onPressed,
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: fontSize),
-        ),
-      ],
-    );
   }
 }

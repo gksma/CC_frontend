@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
 class KeypadPage extends StatefulWidget {
   const KeypadPage({super.key});
@@ -76,10 +77,10 @@ class _KeypadPageState extends State<KeypadPage> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final double dialPadFontSize = screenSize.width * 0.07; // 약간 키워서 빈 공간을 줄임
+    final double dialPadFontSize = screenSize.width * 0.07;
     final double subTextFontSize = screenSize.width * 0.03;
-    final double iconButtonSize = screenSize.width * 0.12; // 아이콘 버튼 크기 조정
-    final double gridSpacing = screenSize.width * 0.13; // 간격을 적당히 유지
+    final double iconButtonSize = screenSize.width * 0.12;
+    final double gridSpacing = screenSize.width * 0.13;
 
     return Scaffold(
       appBar: AppBar(
@@ -117,8 +118,8 @@ class _KeypadPageState extends State<KeypadPage> {
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: gridSpacing,
-                mainAxisSpacing: screenSize.height * 0.04, // 세로 간격을 적당히 넓게
-                childAspectRatio: 1, // 정사각형 모양 유지
+                mainAxisSpacing: screenSize.height * 0.04,
+                childAspectRatio: 1,
               ),
               itemBuilder: (context, index) {
                 if (index < 9) {
@@ -181,53 +182,7 @@ class _KeypadPageState extends State<KeypadPage> {
               ],
             ),
           ),
-          Padding(
-            padding: EdgeInsets.all(screenSize.width * 0.02),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Spacer(),
-                BottomIconButton(
-                  icon: Icons.add,
-                  label: '연락처 추가',
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/add_contact');
-                  },
-                ),
-                Spacer(),
-                BottomIconButton(
-                  icon: Icons.person,
-                  label: '연락처',
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/contacts');
-                  },
-                ),
-                Spacer(),
-                BottomIconButton(
-                  icon: Icons.dialpad,
-                  label: '키패드',
-                  onPressed: () {},
-                ),
-                Spacer(),
-                BottomIconButton(
-                  icon: Icons.history,
-                  label: '최근 기록',
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/recent_calls');
-                  },
-                ),
-                Spacer(),
-                BottomIconButton(
-                  icon: Icons.settings,
-                  label: '설정',
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/settings');
-                  },
-                ),
-                Spacer(),
-              ],
-            ),
-          ),
+          CommonBottomNavigationBar(currentIndex: 2), // 키패드 페이지가 선택된 상태로 설정
         ],
       ),
     );
@@ -292,39 +247,6 @@ class DialButton extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class BottomIconButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const BottomIconButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double fontSize = MediaQuery.of(context).size.width * 0.025;
-    final double iconSize = MediaQuery.of(context).size.width * 0.06;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(icon, size: iconSize),
-          onPressed: onPressed,
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: fontSize),
-        ),
-      ],
     );
   }
 }
