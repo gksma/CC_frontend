@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class KeypadPage extends StatefulWidget {
   const KeypadPage({super.key});
@@ -61,8 +63,23 @@ class _KeypadPageState extends State<KeypadPage> {
     return number;
   }
 
+  Future<void> requestPhonePermission() async {
+    var status = await Permission.phone.status;
+    if (!status.isGranted) {
+      await Permission.phone.request();
+    }
+  }
+
   Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+    await requestPhonePermission();  // 권한 요청
+    bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
+    if (res == null || !res) {
+      throw 'Could not make the call to $phoneNumber';
+    }
+  }
+
+  void _makeVideoCall(String phoneNumber) async {
+    final Uri url = Uri(scheme: 'tel', path: phoneNumber);  // 혹은 video call URI 스킴
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
@@ -70,9 +87,6 @@ class _KeypadPageState extends State<KeypadPage> {
     }
   }
 
-  void _makeVideoCall(String phoneNumber) {
-    print('Making video call to $phoneNumber');
-  }
 
   @override
   Widget build(BuildContext context) {
