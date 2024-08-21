@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'page/keypad_page.dart';
 import 'page/settings_page.dart';
 import 'page/add_contact_page.dart';
-// import 'page/calling_page.dart';
 import 'page/contacts_page.dart';
 import 'page/recent_calls_page.dart';
-// import 'page/incoming_call_locked_page.dart';
-// import 'page/incoming_call_page.dart';
 import 'page/user_edit_page.dart';
 
 void main() async {

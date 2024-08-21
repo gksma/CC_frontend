@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ContactsPage extends StatelessWidget {
   final List<Map<String, String>> _contacts = [
@@ -84,12 +86,18 @@ class ContactsPage extends StatelessWidget {
     );
   }
 
+    Future<void> requestPhonePermission() async {
+      var status = await Permission.phone.status;
+      if (!status.isGranted) {
+        await Permission.phone.request();
+      }
+    }
+
   Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
+    await requestPhonePermission();  // 권한 요청
+    bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
+    if (res == null || !res) {
+      throw 'Could not make the call to $phoneNumber';
     }
   }
 }
