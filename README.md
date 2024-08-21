@@ -1,6 +1,6 @@
 # curtaincall
 
-A new Flutter project.
+개인 정보 보안 기반 전화 앱
 
 ## Getting Started
 
