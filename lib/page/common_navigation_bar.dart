@@ -10,19 +10,19 @@ class CommonBottomNavigationBar extends StatelessWidget {
 
   void _onItemTapped(BuildContext context, int index) {
     switch (index) {
+      // case 0:
+      //   Navigator.pushNamed(context, '/add_contact');
+      //   break;
       case 0:
-        Navigator.pushNamed(context, '/add_contact');
-        break;
-      case 1:
         Navigator.pushNamed(context, '/contacts');
         break;
-      case 2:
+      case 1:
         Navigator.pushNamed(context, '/');
         break;
-      case 3:
+      case 2:
         Navigator.pushNamed(context, '/recent_calls');
         break;
-      case 4:
+      case 3:
         Navigator.pushNamed(context, '/settings');
         break;
     }
@@ -38,10 +38,10 @@ class CommonBottomNavigationBar extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: (index) => _onItemTapped(context, index),
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.add),
-          label: '연락처 추가',
-        ),
+        // BottomNavigationBarItem(
+        //   icon: Icon(Icons.add),
+        //   label: '연락처 추가',
+        // ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person),
           label: '연락처',

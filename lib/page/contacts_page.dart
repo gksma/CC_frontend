@@ -82,7 +82,7 @@ class ContactsPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 1), // 연락처 페이지가 선택된 상태로 설정
+      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0), // 연락처 페이지가 선택된 상태로 설정
     );
   }
 

@@ -172,7 +172,7 @@ class _SettingsPageState extends State<SettingsPage> {
           );
         },
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 4), // 설정 페이지가 선택된 상태로 설정
+      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 3), // 설정 페이지가 선택된 상태로 설정
     );
   }
 }
