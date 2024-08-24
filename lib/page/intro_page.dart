@@ -1,118 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert'; // JSON 처리용 패키지
 
-class UserEditPage extends StatefulWidget {
-  const UserEditPage({super.key});
+class IntroPage extends StatefulWidget {
+  const IntroPage({super.key});
 
   @override
-  _UserEditPageState createState() => _UserEditPageState();
+  _IntroPageState createState() => _IntroPageState();
 }
 
-class _UserEditPageState extends State<UserEditPage> {
+class _IntroPageState extends State<IntroPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _verificationCodeController = TextEditingController();
 
-  bool _isPhoneNumberEditable = false;
-  bool _showVerificationCodeField = false;
-
-  // 인증 요청 API 호출 함수
-  Future<void> _sendVerificationSMS() async {
-    final String phoneNumber = _phoneController.text.replaceAll('-', '');
-
-    if (phoneNumber.isEmpty) {
-      Fluttertoast.showToast(
-        msg: '전화번호를 입력하세요.',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.black,
-        textColor: Colors.white,
-      );
-      return;
-    }
-
-    final url = Uri.parse('https://your-api-endpoint.com/authorization/send-one?phoneNumber=$phoneNumber');
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        Fluttertoast.showToast(
-          msg: 'SMS로 인증번호가 발송되었습니다.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-        );
-        
-        setState(() {
-          _showVerificationCodeField = true;
-          _isPhoneNumberEditable = true;
-        });
-      } else {
-        Fluttertoast.showToast(
-          msg: '인증번호 발송에 실패했습니다.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
-      }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: '네트워크 오류가 발생했습니다.',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    }
-  }
-
-  // 전화번호 인증 후 저장 로직
-  void _verifyAndSavePhoneNumber() {
-    final String verificationCode = _verificationCodeController.text;
-
-    if (verificationCode.isNotEmpty) {
-      // 인증번호가 맞으면 전화번호 저장 로직 추가
-      print('Phone number updated: ${_phoneController.text}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('전화번호가 업데이트되었습니다.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('인증번호를 입력하세요.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  // 이름 저장 로직
-  void _saveNameOnly() {
+  void _saveContact() {
     final String name = _nameController.text;
+    final String phoneNumber = _phoneController.text;
 
-    if (name.isNotEmpty) {
-      // 이름 저장 로직
-      print('Name saved: $name');
+    if (name.isNotEmpty && phoneNumber.isNotEmpty) {
+      // 저장 로직 추가
+      print('Contact saved: $name, $phoneNumber');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('이름이 저장되었습니다.'),
+          content: Text('저장이 완료되었습니다.'),
           duration: Duration(seconds: 2),
         ),
       );
       Navigator.pop(context);
     } else {
+      // 입력 값이 비어있는 경우 에러 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('이름을 입력하세요.'),
+          content: Text('이름과 전화번호를 입력하세요.'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -158,7 +75,7 @@ class _UserEditPageState extends State<UserEditPage> {
     final double padding = screenSize.width * 0.04;
     final double margin = screenSize.width * 0.02;
     final double iconSize = screenSize.width * 0.15;
-    final double fontSize = screenSize.width * 0.045;
+    final double fontSize = screenSize.width * 0.045; // 글꼴 크기 조정
     final double buttonHeight = screenSize.height * 0.07;
 
     return Scaffold(
@@ -218,7 +135,7 @@ class _UserEditPageState extends State<UserEditPage> {
                           ),
                         ],
                       ),
-                      Divider(height: 16.0, thickness: 1),
+                      Divider(height: 16.0, thickness: 1), // Divider 크기 조정
                       Row(
                         children: [
                           Text(
@@ -232,7 +149,6 @@ class _UserEditPageState extends State<UserEditPage> {
                           Expanded(
                             child: TextField(
                               controller: _phoneController,
-                              enabled: _isPhoneNumberEditable, // 전화번호 비활성화 설정
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(vertical: 5),
@@ -244,52 +160,17 @@ class _UserEditPageState extends State<UserEditPage> {
                           ),
                         ],
                       ),
-                      if (_showVerificationCodeField) ...[
-                        Divider(height: 16.0, thickness: 1),
-                        Row(
-                          children: [
-                            Text(
-                              '인증번호 >',
-                              style: TextStyle(
-                                fontSize: fontSize,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _verificationCodeController,
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 5),
-                                ),
-                                style: TextStyle(fontSize: fontSize),
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                       const SizedBox(height: 8.0),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: padding),
+              SizedBox(height: padding), // 아래쪽 여백 추가
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
                 child: ElevatedButton(
-                  onPressed: _sendVerificationSMS,
-                  child: Text('재인증', style: TextStyle(fontSize: fontSize)),
-                ),
-              ),
-              SizedBox(height: padding), // 재인증 버튼 밑에 여백
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: ElevatedButton(
-                  onPressed: _saveNameOnly,
+                  onPressed: _saveContact,
                   child: Text('저장', style: TextStyle(fontSize: fontSize)),
                 ),
               ),
@@ -297,6 +178,39 @@ class _UserEditPageState extends State<UserEditPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class BottomIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const BottomIconButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double iconSize = MediaQuery.of(context).size.width * 0.06;
+    final double fontSize = MediaQuery.of(context).size.width * 0.03;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: iconSize),
+          onPressed: onPressed,
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: fontSize),
+        ),
+      ],
     );
   }
 }

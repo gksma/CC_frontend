@@ -57,7 +57,7 @@ class RecentCallsPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 3),
+      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 2),
     );
   }
 }

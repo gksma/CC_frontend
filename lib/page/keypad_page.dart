@@ -196,7 +196,7 @@ class _KeypadPageState extends State<KeypadPage> {
               ],
             ),
           ),
-          CommonBottomNavigationBar(currentIndex: 2), // 키패드 페이지가 선택된 상태로 설정
+          CommonBottomNavigationBar(currentIndex: 1), // 키패드 페이지가 선택된 상태로 설정
         ],
       ),
     );
