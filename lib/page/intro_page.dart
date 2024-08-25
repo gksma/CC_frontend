@@ -1,21 +1,40 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
-import '../dto/Contact.dart';
-import 'package:http/http.dart' as http;
-class AddContactPage extends StatefulWidget {
-  const AddContactPage({super.key});
+class IntroPage extends StatefulWidget {
+  const IntroPage({super.key});
 
   @override
-  _AddContactPageState createState() => _AddContactPageState();
+  _IntroPageState createState() => _IntroPageState();
 }
 
-class _AddContactPageState extends State<AddContactPage> {
+class _IntroPageState extends State<IntroPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  void _saveContact() {
+    final String name = _nameController.text;
+    final String phoneNumber = _phoneController.text;
+
+    if (name.isNotEmpty && phoneNumber.isNotEmpty) {
+      // 저장 로직 추가
+      print('Contact saved: $name, $phoneNumber');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('저장이 완료되었습니다.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      // 입력 값이 비어있는 경우 에러 메시지 표시
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('이름과 전화번호를 입력하세요.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   void _onPhoneChanged(String value) {
     String formattedNumber = _formatPhoneNumber(value.replaceAll('-', ''));
@@ -66,7 +85,7 @@ class _AddContactPageState extends State<AddContactPage> {
         title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '연락처 추가',
+            '내 정보 편집',
             style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
@@ -151,8 +170,7 @@ class _AddContactPageState extends State<AddContactPage> {
                 width: double.infinity,
                 height: buttonHeight,
                 child: ElevatedButton(
-                  onPressed:() {},
-
+                  onPressed: _saveContact,
                   child: Text('저장', style: TextStyle(fontSize: fontSize)),
                 ),
               ),
@@ -160,7 +178,39 @@ class _AddContactPageState extends State<AddContactPage> {
           ),
         ),
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0), // 연락처 추가 페이지가 선택된 상태로 설정
+    );
+  }
+}
+
+class BottomIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const BottomIconButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double iconSize = MediaQuery.of(context).size.width * 0.06;
+    final double fontSize = MediaQuery.of(context).size.width * 0.03;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: iconSize),
+          onPressed: onPressed,
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: fontSize),
+        ),
+      ],
     );
   }
 }

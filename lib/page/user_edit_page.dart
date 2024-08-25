@@ -1,21 +1,122 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
-
-import '../dto/Contact.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-class AddContactPage extends StatefulWidget {
-  const AddContactPage({super.key});
+import 'dart:convert'; // JSON 처리용 패키지
+
+class UserEditPage extends StatefulWidget {
+  const UserEditPage({super.key});
 
   @override
-  _AddContactPageState createState() => _AddContactPageState();
+  _UserEditPageState createState() => _UserEditPageState();
 }
 
-class _AddContactPageState extends State<AddContactPage> {
+class _UserEditPageState extends State<UserEditPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _verificationCodeController = TextEditingController();
 
+  bool _isPhoneNumberEditable = false;
+  bool _showVerificationCodeField = false;
+
+  // 인증 요청 API 호출 함수
+  Future<void> _sendVerificationSMS() async {
+    final String phoneNumber = _phoneController.text.replaceAll('-', '');
+
+    if (phoneNumber.isEmpty) {
+      Fluttertoast.showToast(
+        msg: '전화번호를 입력하세요.',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+      );
+      return;
+    }
+
+    final url = Uri.parse('https://your-api-endpoint.com/authorization/send-one?phoneNumber=$phoneNumber');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: 'SMS로 인증번호가 발송되었습니다.',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+        );
+        setState(() {
+          _showVerificationCodeField = true;
+          _isPhoneNumberEditable = true;
+        });
+      } else {
+        Fluttertoast.showToast(
+          msg: '인증번호 발송에 실패했습니다.',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: '네트워크 오류가 발생했습니다.',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  // 전화번호 인증 후 저장 로직
+  void _verifyAndSavePhoneNumber() {
+    final String verificationCode = _verificationCodeController.text;
+
+    if (verificationCode.isNotEmpty) {
+      // 인증번호가 맞으면 전화번호 저장 로직 추가
+      print('Phone number updated: ${_phoneController.text}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('전화번호가 업데이트되었습니다.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('인증번호를 입력하세요.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // 이름 저장 로직
+  void _saveNameOnly() {
+    final String name = _nameController.text;
+
+    if (name.isNotEmpty) {
+      // 이름 저장 로직
+      print('Name saved: $name');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('이름이 저장되었습니다.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('이름을 입력하세요.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   void _onPhoneChanged(String value) {
     String formattedNumber = _formatPhoneNumber(value.replaceAll('-', ''));
@@ -56,7 +157,7 @@ class _AddContactPageState extends State<AddContactPage> {
     final double padding = screenSize.width * 0.04;
     final double margin = screenSize.width * 0.02;
     final double iconSize = screenSize.width * 0.15;
-    final double fontSize = screenSize.width * 0.045; // 글꼴 크기 조정
+    final double fontSize = screenSize.width * 0.045;
     final double buttonHeight = screenSize.height * 0.07;
 
     return Scaffold(
@@ -66,7 +167,7 @@ class _AddContactPageState extends State<AddContactPage> {
         title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '연락처 추가',
+            '내 정보 편집',
             style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
@@ -116,7 +217,7 @@ class _AddContactPageState extends State<AddContactPage> {
                           ),
                         ],
                       ),
-                      Divider(height: 16.0, thickness: 1), // Divider 크기 조정
+                      Divider(height: 16.0, thickness: 1),
                       Row(
                         children: [
                           Text(
@@ -130,6 +231,7 @@ class _AddContactPageState extends State<AddContactPage> {
                           Expanded(
                             child: TextField(
                               controller: _phoneController,
+                              enabled: _isPhoneNumberEditable, // 전화번호 비활성화 설정
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(vertical: 5),
@@ -141,18 +243,52 @@ class _AddContactPageState extends State<AddContactPage> {
                           ),
                         ],
                       ),
+                      if (_showVerificationCodeField) ...[
+                        Divider(height: 16.0, thickness: 1),
+                        Row(
+                          children: [
+                            Text(
+                              '인증번호 >',
+                              style: TextStyle(
+                                fontSize: fontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _verificationCodeController,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                ),
+                                style: TextStyle(fontSize: fontSize),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8.0),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: padding), // 아래쪽 여백 추가
+              SizedBox(height: padding),
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
                 child: ElevatedButton(
-                  onPressed:() {},
-
+                  onPressed: _sendVerificationSMS,
+                  child: Text('재인증', style: TextStyle(fontSize: fontSize)),
+                ),
+              ),
+              SizedBox(height: padding), // 재인증 버튼 밑에 여백
+              SizedBox(
+                width: double.infinity,
+                height: buttonHeight,
+                child: ElevatedButton(
+                  onPressed: _saveNameOnly,
                   child: Text('저장', style: TextStyle(fontSize: fontSize)),
                 ),
               ),
@@ -160,7 +296,6 @@ class _AddContactPageState extends State<AddContactPage> {
           ),
         ),
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0), // 연락처 추가 페이지가 선택된 상태로 설정
     );
   }
 }

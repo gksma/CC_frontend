@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.CurtainCall">
+    package="com.example.curtaincall">
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
@@ -19,17 +19,13 @@
         <activity
             android:name=".views.dialer.DialerActivity"
             android:exported="false">
-
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
-
                 <category android:name="android.intent.category.DEFAULT" />
-
                 <data android:scheme="tel" />
             </intent-filter>
         </activity>
@@ -54,10 +50,11 @@
         <activity
 
             android:name="io.flutter.embedding.android.FlutterActivity"
+            android:theme="@android:style/Theme.NoTitleBar"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|density|layoutDirection"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
-            android:exported="true">
+            android:exported="false">
         </activity>
 
         <!-- Don't delete the meta-data below.
