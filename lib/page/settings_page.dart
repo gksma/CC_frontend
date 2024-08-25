@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -12,11 +13,15 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _isCurtainCallOn = false; // 커튼콜 초기 상태
+  String _userName='';// 사용자 이름
+  String _userPhone = ''; // 사용자 전화번호
+  bool _isCurtainCallOnAndOff=false;
 
   @override
   void initState() {
     super.initState();
     _loadCurtainCallState();
+    _fetchUserProfileWithConnection();
   }
 
   Future<void> _loadCurtainCallState() async {
@@ -26,6 +31,26 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  Future<void> _fetchUserProfileWithConnection() async {
+    //참고1 현재는 임의의 값으로 되어 있지만, 어플 사용자의 전화번호를 찾아서 setting을 해줘야함.
+    String userPhoneNumber="01033206094";
+
+    //참고2 현재는 android emulator의 로컬 주소로 되어있지만 실제로 배포하게 되면 백엔드 단에서 넘겨준
+    //인스턴스의 주소를 사용해야함.
+    final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user?phoneNumber=$userPhoneNumber'));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        _userName = data['nickName'];
+        _userPhone=userPhoneNumber;
+        _isCurtainCallOnAndOff=data["isCurtainCallOnAndOff"];
+      });
+    } else {
+      // 에러 처리
+      print('Failed to load user profile');
+    }
+  }
   Future<void> _saveCurtainCallState(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isCurtainCallOn', value);
@@ -118,8 +143,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     children: [
                       Icon(Icons.person, size: iconSize),
                       SizedBox(height: padding),
-                      Text('홍길동', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
-                      Text('010-1234-5678', style: TextStyle(fontSize: switchFontSize)),
+                      Text(_userName, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                      Text(_userPhone, style: TextStyle(fontSize: switchFontSize)),
                     ],
                   ),
                 ),
@@ -141,7 +166,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           ],
                         ),
                         Switch(
-                          value: _isCurtainCallOn,
+                          value: _isCurtainCallOnAndOff,
                           onChanged: (value) async {
                             if (value) {
                               await _checkAndRequestPermissions();
