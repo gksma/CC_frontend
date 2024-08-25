@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
@@ -13,6 +14,21 @@ class KeypadPage extends StatefulWidget {
 
 class _KeypadPageState extends State<KeypadPage> {
   final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.phone,
+      Permission.contacts,
+      Permission.camera,
+      Permission.microphone,
+    ].request();
+  }
 
   void _onKeyPress(String value) {
     setState(() {
@@ -63,15 +79,9 @@ class _KeypadPageState extends State<KeypadPage> {
     return number;
   }
 
-  Future<void> requestPhonePermission() async {
-    var status = await Permission.phone.status;
-    if (!status.isGranted) {
-      await Permission.phone.request();
-    }
-  }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
-    await requestPhonePermission();  // 권한 요청
+    // await requestPhonePermission();  // 권한 요청
     bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
     if (res == null || !res) {
       throw 'Could not make the call to $phoneNumber';
@@ -88,6 +98,7 @@ class _KeypadPageState extends State<KeypadPage> {
   }
 
 
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -102,6 +113,7 @@ class _KeypadPageState extends State<KeypadPage> {
         elevation: 0,
         toolbarHeight: 0,
       ),
+
       body: Column(
         children: [
           Expanded(

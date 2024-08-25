@@ -25,6 +25,7 @@ class MyApp extends StatelessWidget {
         '/settings': (context) => const SettingsPage(),
         // '/add_contact': (context) => const AddContactPage(),
         '/contacts': (context) => ContactsPage(),
+
         '/recent_calls': (context) => const RecentCallsPage(),
         '/user_edit': (context) => const UserEditPage(),
         '/intro': (context) => const IntroPage()

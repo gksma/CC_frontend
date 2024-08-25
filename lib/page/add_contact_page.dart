@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
+import '../dto/Contact.dart';
+import 'package:http/http.dart' as http;
 class AddContactPage extends StatefulWidget {
   const AddContactPage({super.key});
 
@@ -12,30 +16,6 @@ class _AddContactPageState extends State<AddContactPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-  void _saveContact() {
-    final String name = _nameController.text;
-    final String phoneNumber = _phoneController.text;
-
-    if (name.isNotEmpty && phoneNumber.isNotEmpty) {
-      // 저장 로직 추가
-      print('Contact saved: $name, $phoneNumber');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('저장이 완료되었습니다.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context);
-    } else {
-      // 입력 값이 비어있는 경우 에러 메시지 표시
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('이름과 전화번호를 입력하세요.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   void _onPhoneChanged(String value) {
     String formattedNumber = _formatPhoneNumber(value.replaceAll('-', ''));
@@ -171,7 +151,8 @@ class _AddContactPageState extends State<AddContactPage> {
                 width: double.infinity,
                 height: buttonHeight,
                 child: ElevatedButton(
-                  onPressed: _saveContact,
+                  onPressed:() {},
+
                   child: Text('저장', style: TextStyle(fontSize: fontSize)),
                 ),
               ),
