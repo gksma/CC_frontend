@@ -1,17 +1,41 @@
 import 'package:flutter/material.dart';
-// import 'package:url_launcher/url_launcher.dart';
-import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
+import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class ContactsPage extends StatelessWidget {
+class ContactsPage extends StatefulWidget {
+  ContactsPage({super.key});
+
+  @override
+  _ContactsPageState createState() => _ContactsPageState();
+}
+
+class _ContactsPageState extends State<ContactsPage> {
   final List<Map<String, String>> _contacts = [
     {"name": "김xx", "phone": "010-1234-5678"},
     {"name": "이xx", "phone": "010-2345-6789"},
     {"name": "박xx", "phone": "010-3456-7890"},
   ];
 
-  ContactsPage({super.key});
+  List<Map<String, String>> _filteredContacts = [];
+  String _searchText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredContacts = _contacts;
+  }
+
+  void _filterContacts(String searchText) {
+    setState(() {
+      _searchText = searchText;
+      _filteredContacts = _contacts.where((contact) {
+        final name = contact['name']!.toLowerCase();
+        final phone = contact['phone']!.replaceAll('-', '').toLowerCase();
+        return name.contains(searchText.toLowerCase()) || phone.contains(searchText);
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +63,22 @@ class ContactsPage extends StatelessWidget {
           SizedBox(height: padding),
           Icon(Icons.contacts, size: iconSize),
           SizedBox(height: padding),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: padding),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: '이름 또는 전화번호 검색',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onChanged: (value) {
+                _filterContacts(value);
+              },
+            ),
+          ),
+          SizedBox(height: padding),
           Expanded(
             child: Container(
               padding: EdgeInsets.all(padding),
@@ -57,13 +97,13 @@ class ContactsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16 * (screenSize.width / 375)),
                 ),
                 child: ListView.separated(
-                  itemCount: _contacts.length,
+                  itemCount: _filteredContacts.length,
                   separatorBuilder: (context, index) => Divider(
                     color: Colors.grey[300],
                     thickness: 1,
                   ),
                   itemBuilder: (context, index) {
-                    final contact = _contacts[index];
+                    final contact = _filteredContacts[index];
                     return ListTile(
                       title: Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
                       subtitle: Text(contact['phone']!, style: TextStyle(fontSize: fontSize)),
@@ -86,18 +126,18 @@ class ContactsPage extends StatelessWidget {
     );
   }
 
-    Future<void> requestPhonePermission() async {
-      var status = await Permission.phone.status;
-      if (!status.isGranted) {
-        await Permission.phone.request();
-      }
+  Future<void> requestPhonePermission() async {
+    var status = await Permission.phone.status;
+    if (!status.isGranted) {
+      await Permission.phone.request();
     }
+  }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     await requestPhonePermission();  // 권한 요청
     bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
     if (res == null || !res) {
-      throw 'Could not make the call to $phoneNumber';
+      throw '전화를 걸 수 없습니다. 관리자에게 문의하세요.';
     }
   }
 }

@@ -46,7 +46,6 @@ class _UserEditPageState extends State<UserEditPage> {
           backgroundColor: Colors.black,
           textColor: Colors.white,
         );
-        
         setState(() {
           _showVerificationCodeField = true;
           _isPhoneNumberEditable = true;
