@@ -17,6 +17,18 @@ class _UserEditPageState extends State<UserEditPage> {
 
   bool _isPhoneNumberEditable = false;
   bool _showVerificationCodeField = false;
+  String prePhoneNumber="01023326094";
+  String _userName="";
+  String _userPhone="";
+
+  @override
+  void initState() {
+    super.initState();
+    // _loadCurtainCallState();
+    _isPhoneNumberEditable = false;
+    _fetchUserProfileWithConnection();
+
+  }
 
   // 인증 요청 API 호출 함수
   Future<void> _sendVerificationSMS() async {
@@ -32,43 +44,27 @@ class _UserEditPageState extends State<UserEditPage> {
       );
       return;
     }
+  }
+    Future<void> _fetchUserProfileWithConnection() async {
+      //참고1 현재는 임의의 값으로 되어 있지만, 어플 사용자의 전화번호를 찾아서 setting을 해줘야함.
+      String userPhoneNumber="01023326094";
 
-    final url = Uri.parse('https://your-api-endpoint.com/authorization/send-one?phoneNumber=$phoneNumber');
-
-    try {
-      final response = await http.get(url);
+      //참고2 현재는 android emulator의 로컬 주소로 되어있지만 실제로 배포하게 되면 백엔드 단에서 넘겨준
+      //인스턴스의 주소를 사용해야함.
+      final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user?phoneNumber=$userPhoneNumber'));
 
       if (response.statusCode == 200) {
-        Fluttertoast.showToast(
-          msg: 'SMS로 인증번호가 발송되었습니다.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-        );
+        final data = json.decode(response.body);
         setState(() {
-          _showVerificationCodeField = true;
-          _isPhoneNumberEditable = true;
+          _userName = data['nickName'];
+          _userPhone=userPhoneNumber;
         });
       } else {
-        Fluttertoast.showToast(
-          msg: '인증번호 발송에 실패했습니다.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        // 에러 처리
+        print('Failed to load user profile');
       }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: '네트워크 오류가 발생했습니다.',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
     }
-  }
+    //현재 들어가 있는
 
   // 전화번호 인증 후 저장 로직
   void _verifyAndSavePhoneNumber() {
@@ -208,7 +204,8 @@ class _UserEditPageState extends State<UserEditPage> {
                           Expanded(
                             child: TextField(
                               controller: _nameController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
+                                labelText: _userName,
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(vertical: 5),
                               ),
@@ -230,10 +227,12 @@ class _UserEditPageState extends State<UserEditPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
+                              // print("isPhe /+_isPhoneNumberEditable);
                               controller: _phoneController,
                               enabled: _isPhoneNumberEditable, // 전화번호 비활성화 설정
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
+                                labelText: _userPhone,
                                 contentPadding: EdgeInsets.symmetric(vertical: 5),
                               ),
                               style: TextStyle(fontSize: fontSize),

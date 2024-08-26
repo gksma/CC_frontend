@@ -1,3 +1,4 @@
+import 'package:curtaincall/page/user_edit_page.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _fetchUserProfileWithConnection() async {
     //참고1 현재는 임의의 값으로 되어 있지만, 어플 사용자의 전화번호를 찾아서 setting을 해줘야함.
-    String userPhoneNumber="01033206094";
+    String userPhoneNumber="01023326094";
 
     //참고2 현재는 android emulator의 로컬 주소로 되어있지만 실제로 배포하게 되면 백엔드 단에서 넘겨준
     //인스턴스의 주소를 사용해야함.
