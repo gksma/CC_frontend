@@ -1,3 +1,4 @@
+import 'package:curtaincall/global/user_info.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'page/keypad_page.dart';
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
         '/contacts': (context) => ContactsPage(),
 
         '/recent_calls': (context) => const RecentCallsPage(),
-        '/user_edit': (context) => const UserEditPage(),
+        '/user_edit': (context) =>  const UserEditPage(),
         '/intro': (context) => const IntroPage()
       },
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),

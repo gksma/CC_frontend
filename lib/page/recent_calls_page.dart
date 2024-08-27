@@ -1,11 +1,41 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'common_navigation_bar.dart';
-// import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+
+import 'common_navigation_bar.dart';
 
 class RecentCallsPage extends StatelessWidget {
   const RecentCallsPage({super.key});
+
+  Future<List<CallRecordData>> fetchCallRecords() async {
+    // 사용자의 전화번호
+    String phoneNumber = "01023326094";
+
+    // API 호출
+    final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/recentCallHistory?phoneNumber=$phoneNumber'));
+
+    if (response.statusCode == 200) {
+      // JSON 데이터를 파싱하여 List<Map<String, dynamic>>로 변환
+      List<dynamic> jsonData = jsonDecode(utf8.decode(response.bodyBytes)); // UTF-8로 디코딩
+
+      // JSON 데이터를 CallRecordData 객체 리스트로 변환
+      List<CallRecordData> callRecords = jsonData.map((data) {
+        return CallRecordData(
+          name: data['nickName'],
+          phoneNumber: data['phoneNumber'] ?? 'Unknown',
+          dateTime: DateTime.parse(data['recentCallDate']).toLocal().toString(),
+          isMissed: data['isMissedCall'],
+        );
+      }).toList();
+
+      return callRecords;
+    } else {
+      // 실패 시 처리 (예: 빈 리스트 반환)
+      throw Exception('Failed to load call records');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,33 +58,31 @@ class RecentCallsPage extends StatelessWidget {
       ),
       body: Padding(
         padding: EdgeInsets.all(padding),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  CallRecord(
-                    name: '김AA',
-                    phoneNumber: '010-1111-1111',
-                    dateTime: '07-12 21:39',
-                    isMissed: false,
-                  ),
-                  CallRecord(
-                    name: '김BB',
-                    phoneNumber: '010-1111-2222',
-                    dateTime: '07-12 21:35',
-                    isMissed: false,
-                  ),
-                  CallRecord(
-                    name: '김CC',
-                    phoneNumber: '010-1111-3333',
-                    dateTime: '07-12 21:30',
-                    isMissed: true,
-                  ),
-                ],
-              ),
-            ),
-          ],
+        child: FutureBuilder<List<CallRecordData>>(
+          future: fetchCallRecords(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Failed to load call records'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No call records found'));
+            } else {
+              final callRecords = snapshot.data!;
+              return ListView.builder(
+                itemCount: callRecords.length,
+                itemBuilder: (context, index) {
+                  final callRecord = callRecords[index];
+                  return CallRecord(
+                    name: callRecord.name,
+                    phoneNumber: callRecord.phoneNumber,
+                    dateTime: callRecord.dateTime,
+                    isMissed: callRecord.isMissed,
+                  );
+                },
+              );
+            }
+          },
         ),
       ),
       bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 2),
@@ -147,4 +175,18 @@ class CallRecord extends StatelessWidget {
       ),
     );
   }
+}
+
+class CallRecordData {
+  final String name;
+  final String phoneNumber;
+  final String dateTime;
+  final bool isMissed;
+
+  CallRecordData({
+    required this.name,
+    required this.phoneNumber,
+    required this.dateTime,
+    required this.isMissed,
+  });
 }
