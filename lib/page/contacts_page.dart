@@ -125,6 +125,14 @@ class _ContactsPageState extends State<ContactsPage> {
       final name = _nameControllers[phoneNumber]!.text;
       final newPhoneNumber = _phoneControllers[phoneNumber]!.text;
 
+      for (var contact in _contacts) {
+        if (contact['phone'] == phoneNumber) {
+          contact['name'] = name;
+          contact['phone'] = newPhoneNumber;
+          break;
+        }
+      }
+
       if (newPhoneNumber != phoneNumber) {
         // 기존 전화번호를 새 전화번호로 업데이트
         _savePhoneBookProfileWithConnection(phoneNumber, newPhoneNumber);
