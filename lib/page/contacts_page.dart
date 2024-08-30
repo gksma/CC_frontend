@@ -1,7 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
 
 class ContactsPage extends StatefulWidget {
   ContactsPage({super.key});
@@ -11,19 +11,89 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
-  final List<Map<String, String>> _contacts = [
-    {"name": "김xx", "phone": "010-1234-5678"},
-    {"name": "이xx", "phone": "010-2345-6789"},
-    {"name": "박xx", "phone": "010-3456-7890"},
-  ];
-
-  List<Map<String, String>> _filteredContacts = [];
+  List<Map<String, dynamic>> _contacts = [];
+  List<Map<String, dynamic>> _filteredContacts = [];
   String _searchText = '';
+  String userPhoneNumber = "01023326094";  // 사용자 전화번호
+  Map<String, bool> _switchStates = {};
+  Map<String, bool> _isEditing = {};
+  Map<String, TextEditingController> _nameControllers = {};
+  Map<String, TextEditingController> _phoneControllers = {};
 
   @override
   void initState() {
     super.initState();
     _filteredContacts = _contacts;
+    _fetchPhoneBookProfileWithConnection();
+  }
+
+  Future<void> _fetchPhoneBookProfileWithConnection() async {
+    final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List<dynamic> contactList = data["response"][userPhoneNumber];
+
+      setState(() {
+        for (var contact in contactList) {
+          _contacts.add({
+            "name": contact["name"],
+            "phone": contact["phoneNumber"],
+            "isCurtainCallOnAndOff": contact["isCurtainCallOnAndOff"],
+          });
+          _switchStates[contact["phoneNumber"]] = contact["isCurtainCallOnAndOff"];
+          _isEditing[contact["phoneNumber"]] = false;
+          _nameControllers[contact["phoneNumber"]] = TextEditingController(text: contact["name"]);
+          _phoneControllers[contact["phoneNumber"]] = TextEditingController(text: contact["phoneNumber"]);
+        }
+        _filteredContacts = _contacts;
+      });
+    } else {
+      print('Failed to load user profile');
+    }
+  }
+
+  Future<void> _savePhoneBookProfileWithConnection(String prePhoneNumber, String newPhoneNumber) async {
+    // 수정할 연락처 데이터를 JSON 형식으로 구성합니다.
+    Map<String, dynamic> updatedContact = {
+      "name": _nameControllers[prePhoneNumber]!.text,
+      "phoneNumber": newPhoneNumber,
+      "isCurtainCallOnAndOff": _switchStates[prePhoneNumber]
+    };
+
+    // 서버로 데이터를 PUT 요청으로 전송합니다.
+    final response = await http.put(
+      Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?prePhoneNumber=$prePhoneNumber'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        userPhoneNumber: updatedContact,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('User profile updated successfully');
+    } else {
+      print('Failed to update user profile');
+    }
+
+    // 기존 정보를 새 정보로 업데이트
+    setState(() {
+      if (prePhoneNumber != newPhoneNumber) {
+        _switchStates[newPhoneNumber] = _switchStates.remove(prePhoneNumber)!;
+        _isEditing[newPhoneNumber] = _isEditing.remove(prePhoneNumber)!;
+        _nameControllers[newPhoneNumber] = _nameControllers.remove(prePhoneNumber)!;
+        _phoneControllers[newPhoneNumber] = _phoneControllers.remove(prePhoneNumber)!;
+
+        for (var contact in _contacts) {
+          if (contact["phone"] == prePhoneNumber) {
+            contact["phone"] = newPhoneNumber;
+            break;
+          }
+        }
+      }
+    });
   }
 
   void _filterContacts(String searchText) {
@@ -37,11 +107,41 @@ class _ContactsPageState extends State<ContactsPage> {
     });
   }
 
+  void _toggleSwitch(String phoneNumber, bool value) {
+    setState(() {
+      _switchStates[phoneNumber] = value;
+      _savePhoneBookProfileWithConnection(phoneNumber, phoneNumber); // 스위치 상태 변경 시 API 호출
+    });
+  }
+
+  void _toggleEditMode(String phoneNumber) {
+    setState(() {
+      _isEditing[phoneNumber] = !_isEditing[phoneNumber]!;
+    });
+  }
+
+  void _saveEditedContact(String phoneNumber) {
+    setState(() {
+      final name = _nameControllers[phoneNumber]!.text;
+      final newPhoneNumber = _phoneControllers[phoneNumber]!.text;
+
+      if (newPhoneNumber != phoneNumber) {
+        // 기존 전화번호를 새 전화번호로 업데이트
+        _savePhoneBookProfileWithConnection(phoneNumber, newPhoneNumber);
+      } else {
+        _savePhoneBookProfileWithConnection(phoneNumber, phoneNumber);
+      }
+
+      _toggleEditMode(phoneNumber);
+      _filteredContacts = _contacts;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final double iconSize = screenSize.width * 0.15; // 타이틀 아래 연락처 아이콘 크기
-    final double listIconSize = screenSize.width * 0.07; // 리스트 아이콘 크기
+    final double iconSize = screenSize.width * 0.15;
+    final double listIconSize = screenSize.width * 0.07;
     final double padding = screenSize.width * 0.04;
     final double fontSize = screenSize.width * 0.04;
 
@@ -104,15 +204,73 @@ class _ContactsPageState extends State<ContactsPage> {
                   ),
                   itemBuilder: (context, index) {
                     final contact = _filteredContacts[index];
+                    final phoneNumber = contact['phone']!;
+                    final isSwitched = _switchStates[phoneNumber] ?? false;
+                    final isEditing = _isEditing[phoneNumber] ?? false;
+
                     return ListTile(
-                      title: Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
-                      subtitle: Text(contact['phone']!, style: TextStyle(fontSize: fontSize)),
+                      title: isEditing
+                          ? ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: screenSize.width * 0.5,
+                        ),
+                        child: TextField(
+                          controller: _nameControllers[phoneNumber],
+                          decoration: InputDecoration(
+                            hintText: '이름을 입력하세요',
+                          ),
+                          maxLines: 1,
+                          style: TextStyle(overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                          : Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
+                      subtitle: isEditing
+                          ? ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: screenSize.width * 0.5,
+                        ),
+                        child: TextField(
+                          controller: _phoneControllers[phoneNumber],
+                          decoration: InputDecoration(
+                            hintText: '전화번호를 입력하세요',
+                          ),
+                          maxLines: 1,
+                          style: TextStyle(overflow: TextOverflow.ellipsis),
+                          keyboardType: TextInputType.phone,
+                        ),
+                      )
+                          : Text(
+                        phoneNumber,
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        maxLines: 1,
+                      ),
                       leading: Icon(Icons.person, size: listIconSize),
-                      trailing: IconButton(
-                        icon: Icon(Icons.call, size: listIconSize),
-                        onPressed: () {
-                          _makePhoneCall(contact['phone']!);
-                        },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Transform.scale(
+                            scale: 0.75,
+                            child: Switch(
+                              value: isSwitched,
+                              onChanged: (value) {
+                                _toggleSwitch(phoneNumber, value);
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(isEditing ? Icons.save : Icons.edit),
+                            onPressed: () {
+                              if (isEditing) {
+                                _saveEditedContact(phoneNumber);
+                              } else {
+                                _toggleEditMode(phoneNumber);
+                              }
+                            },
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -122,22 +280,7 @@ class _ContactsPageState extends State<ContactsPage> {
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0), // 연락처 페이지가 선택된 상태로 설정
+      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0),
     );
-  }
-
-  Future<void> requestPhonePermission() async {
-    var status = await Permission.phone.status;
-    if (!status.isGranted) {
-      await Permission.phone.request();
-    }
-  }
-
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    await requestPhonePermission();  // 권한 요청
-    bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
-    if (res == null || !res) {
-      throw '전화를 걸 수 없습니다. 관리자에게 문의하세요.';
-    }
   }
 }
