@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
@@ -10,23 +11,100 @@ class IntroPage extends StatefulWidget {
 class _IntroPageState extends State<IntroPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _verificationCodeController = TextEditingController();
+
+  bool _showVerificationField = false;
+  bool _isLoading = false;
+
+  // 전화번호로 인증번호 발송 API 호출
+  Future<void> _sendVerificationCode(String phoneNumber) async {
+    final url = Uri.parse('/authorization/send-one?phoneNumber=$phoneNumber');
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('인증번호가 전송되었습니다.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        setState(() {
+          _showVerificationField = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('인증번호 전송에 실패했습니다. 다시 시도해주세요.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('네트워크 오류가 발생했습니다.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // 인증번호 확인 API 호출
+  Future<void> _verifyCode(String phoneNumber, String verificationCode) async {
+    final url = Uri.parse('/authorization/configNumber?phoneNumber=$phoneNumber&configNumber=$verificationCode');
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('인증이 완료되었습니다.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context); // 인증 완료 후 페이지 닫기
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('인증번호가 일치하지 않습니다.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('네트워크 오류가 발생했습니다.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   void _saveContact() {
     final String name = _nameController.text;
     final String phoneNumber = _phoneController.text;
 
     if (name.isNotEmpty && phoneNumber.isNotEmpty) {
-      // 저장 로직 추가
-      print('Contact saved: $name, $phoneNumber');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('저장이 완료되었습니다.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context);
+      _sendVerificationCode(phoneNumber);
     } else {
-      // 입력 값이 비어있는 경우 에러 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('이름과 전화번호를 입력하세요.'),
@@ -85,132 +163,133 @@ class _IntroPageState extends State<IntroPage> {
         title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '내 정보 편집',
+            '내 정보 인증',
             style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
           ),
         ),
         automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            children: [
-              SizedBox(height: padding),
-              Icon(Icons.person_add, size: iconSize),
-              SizedBox(height: padding),
-              Container(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
                 padding: EdgeInsets.all(padding),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(32),
-                ),
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '이름 >',
-                            style: TextStyle(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _nameController,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 5),
-                              ),
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          ),
-                        ],
+                child: Column(
+                  children: [
+                    SizedBox(height: padding),
+                    Icon(Icons.person_add, size: iconSize),
+                    SizedBox(height: padding),
+                    Container(
+                      padding: EdgeInsets.all(padding),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(32),
                       ),
-                      Divider(height: 16.0, thickness: 1), // Divider 크기 조정
-                      Row(
-                        children: [
-                          Text(
-                            '전화번호 >',
-                            style: TextStyle(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.bold,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  '이름 >',
+                                  style: TextStyle(
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _nameController,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                    ),
+                                    style: TextStyle(fontSize: fontSize),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _phoneController,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 5),
+                            const Divider(height: 16.0, thickness: 1),
+                            Row(
+                              children: [
+                                Text(
+                                  '전화번호 >',
+                                  style: TextStyle(
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _phoneController,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                    ),
+                                    style: TextStyle(fontSize: fontSize),
+                                    keyboardType: TextInputType.phone,
+                                    onChanged: _onPhoneChanged,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8.0),
+                            if (_showVerificationField)
+                              Column(
+                                children: [
+                                  const Divider(height: 16.0, thickness: 1),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '인증번호 >',
+                                        style: TextStyle(
+                                          fontSize: fontSize,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _verificationCodeController,
+                                          decoration: const InputDecoration(
+                                            border: InputBorder.none,
+                                            contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                          ),
+                                          style: TextStyle(fontSize: fontSize),
+                                          keyboardType: TextInputType.number,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8.0),
+                                ],
                               ),
-                              style: TextStyle(fontSize: fontSize),
-                              keyboardType: TextInputType.phone,
-                              onChanged: _onPhoneChanged,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8.0),
-                    ],
-                  ),
+                    ),
+                    SizedBox(height: padding), // 아래쪽 여백 추가
+                    SizedBox(
+                      width: double.infinity,
+                      height: buttonHeight,
+                      child: ElevatedButton(
+                        onPressed: _showVerificationField
+                            ? () => _verifyCode(_phoneController.text, _verificationCodeController.text)
+                            : _saveContact,
+                        child: Text(_showVerificationField ? '확인' : '인증', style: TextStyle(fontSize: fontSize)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: padding), // 아래쪽 여백 추가
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: ElevatedButton(
-                  onPressed: _saveContact,
-                  child: Text('저장', style: TextStyle(fontSize: fontSize)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class BottomIconButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const BottomIconButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double iconSize = MediaQuery.of(context).size.width * 0.06;
-    final double fontSize = MediaQuery.of(context).size.width * 0.03;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(icon, size: iconSize),
-          onPressed: onPressed,
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: fontSize),
-        ),
-      ],
+            ),
     );
   }
 }
