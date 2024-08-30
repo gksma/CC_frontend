@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -28,7 +30,7 @@ class _IntroPageState extends State<IntroPage> {
 
   // 사용자인지 확인하는 API 호출
   Future<void> _checkIfUser() async {
-    const String phoneNumber = "01013326094"; // 이 값을 실제로 어디서 가져오는지에 따라 변경 가능
+    const String phoneNumber = "01023326094"; // 이 값을 실제로 어디서 가져오는지에 따라 변경 가능
 
     final url = Uri.parse('http://10.0.2.2:8080/authorizatio/configUser?phoneNumber=$phoneNumber');
     setState(() {
@@ -83,7 +85,7 @@ class _IntroPageState extends State<IntroPage> {
 
   // 전화번호로 인증번호 발송 API 호출
   Future<void> _sendVerificationCode(String phoneNumber) async {
-    final url = Uri.parse('http://localhost:8080/authorization/send-one?phoneNumber=$phoneNumber');
+    final url = Uri.parse('http://10.0.2.2:8080/authorization/send-one?phoneNumber=$phoneNumber');
     setState(() {
       _isLoading = true;
     });
@@ -125,7 +127,7 @@ class _IntroPageState extends State<IntroPage> {
 
   // 인증번호 확인 API 호출
   Future<void> _verifyCode(String phoneNumber, String verificationCode) async {
-    final url = Uri.parse('http://localhost:8080/authorization/configNumber?phoneNumber=$phoneNumber&configNumber=$verificationCode');
+    final url = Uri.parse('http://10.0.2.2:8080/authorization/configNumber?phoneNumber=$phoneNumber&configNumber=$verificationCode');
     setState(() {
       _isLoading = true;
     });
@@ -133,14 +135,24 @@ class _IntroPageState extends State<IntroPage> {
     try {
       final response = await http.get(url);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.body=="true") {
+        // 인증에 성공한 경우 사용자 정보 저장
+        await _saveUserInfo();
+        // 전화번호부 정보 저장
+        await _savePhoneBookInfo();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('인증이 완료되었습니다.'),
             duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context); // 인증 완료 후 페이지 닫기
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const KeypadPage(),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -163,6 +175,65 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
+  // 사용자 정보를 저장하는 API 호출
+  Future<void> _saveUserInfo() async {
+    final url = Uri.parse('http://10.0.2.2:8080/main/user');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        "phoneNumber": _phoneController.text,
+        "nickName": _nameController.text,
+        "isCurtainCall": false
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('User information saved successfully');
+    } else {
+      print('Failed to save user information');
+    }
+  }
+
+  // 전화번호부 정보를 저장하는 API 호출
+  Future<void> _savePhoneBookInfo() async {
+    final url = Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo');
+    final phoneBookData = {
+      _phoneController.text: [
+        {
+          "name": "Jho",
+          "phoneNumber": "01012346094",
+          "isCurtainCallOnAndOff": false
+        },
+        {
+          "name": "sdasd",
+          "phoneNumber": "01050693231",
+          "isCurtainCallOnAndOff": false
+        },
+        {
+          "name": "ertty",
+          "phoneNumber": "01060593232",
+          "isCurtainCallOnAndOff": true
+        }
+      ]
+    };
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(phoneBookData),
+    );
+
+    if (response.statusCode == 200) {
+      print('Phone book information saved successfully');
+    } else {
+      print('Failed to save phone book information');
+    }
+  }
   void _saveContact() {
     final String name = _nameController.text;
     final String phoneNumber = _phoneController.text;
