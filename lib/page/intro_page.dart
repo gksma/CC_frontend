@@ -32,7 +32,7 @@ class _IntroPageState extends State<IntroPage> {
   Future<void> _checkIfUser() async {
     const String phoneNumber = "01023326094"; // 이 값을 실제로 어디서 가져오는지에 따라 변경 가능
 
-    final url = Uri.parse('http://10.0.2.2:8080/authorizatio/configUser?phoneNumber=$phoneNumber');
+    final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser?phoneNumber=$phoneNumber');
     setState(() {
       _isLoading = true;
     });
@@ -40,6 +40,7 @@ class _IntroPageState extends State<IntroPage> {
     try {
 
       final response = await http.get(url);
+      print(response.body);
       if (response.statusCode == 200) {
         if(response.body=='true') {
           // API 응답이 200인 경우, 사용자인지 여부를 확인
