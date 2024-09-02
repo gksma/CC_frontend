@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
 import 'package:http/http.dart' as http;
 
@@ -23,8 +26,17 @@ class _ContactsPageState extends State<ContactsPage> {
   @override
   void initState() {
     super.initState();
-    _filteredContacts = _contacts;
+    _requestPermissions();
     _fetchPhoneBookProfileWithConnection();
+  }
+
+  Future<void> _requestPermissions() async {
+    if (await Permission.contacts.request().isGranted) {
+      // 권한이 허용된 경우 연락처 접근 가능
+    } else {
+      // 권한이 거부된 경우 사용자에게 알림
+      print("Contacts permission denied");
+    }
   }
 
   Future<void> _fetchPhoneBookProfileWithConnection() async {
@@ -45,11 +57,37 @@ class _ContactsPageState extends State<ContactsPage> {
           _isEditing[contact["phoneNumber"]] = false;
           _nameControllers[contact["phoneNumber"]] = TextEditingController(text: contact["name"]);
           _phoneControllers[contact["phoneNumber"]] = TextEditingController(text: contact["phoneNumber"]);
+
+          // isCurtainCallOnAndOff가 true인 경우 이름 삭제
+          if (contact["isCurtainCallOnAndOff"]) {
+            _deleteContactName(contact["phoneNumber"]);
+          }
         }
         _filteredContacts = _contacts;
       });
     } else {
       print('Failed to load user profile');
+    }
+  }
+
+  Future<void> _deleteContactName(String phoneNumber) async {
+    try {
+      if (await Permission.contacts.request().isGranted) {
+        // 연락처를 가져옵니다.
+        final contacts = await FlutterContacts.getContacts(withProperties: true);
+        for (var contact in contacts) {
+          if (contact.phones.isNotEmpty && contact.phones.first.number.replaceAll('-', '') == phoneNumber) {
+            // 연락처 이름을 삭제합니다.
+            contact.name.first = '';
+            contact.name.last = '';
+            await contact.update();
+            print('Contact name deleted');
+            break;
+          }
+        }
+      }
+    } on PlatformException catch (e) {
+      print('Failed to delete contact: ${e.message}');
     }
   }
 
