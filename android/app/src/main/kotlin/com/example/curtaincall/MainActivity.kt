@@ -1,6 +1,7 @@
 package com.example.curtaincall
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.telephony.TelephonyManager
@@ -44,8 +45,8 @@ class MainActivity : AppCompatActivity() {
                 if (phoneNumber.isNullOrEmpty()) {
                     Toast.makeText(this, "Unable to retrieve phone number", Toast.LENGTH_LONG).show()
                 } else {
-                    Toast.makeText(this, "Phone Number: $phoneNumber", Toast.LENGTH_LONG).show()
-                    // 여기서 전화번호를 저장하거나 처리할 수 있습니다.
+                    // 전화번호를 SharedPreferences에 저장
+                    savePhoneNumberToSharedPreferences(phoneNumber)
                 }
             } else {
                 Toast.makeText(this, "TelephonyManager is not available", Toast.LENGTH_LONG).show()
@@ -54,6 +55,16 @@ class MainActivity : AppCompatActivity() {
             // 예외 처리
             Toast.makeText(this, "Failed to retrieve phone number: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    // SharedPreferences에 전화번호 저장
+    private fun savePhoneNumberToSharedPreferences(phoneNumber: String) {
+        val sharedPref = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putString("phone_number", phoneNumber)
+            apply() // 저장
+        }
+        Toast.makeText(this, "Phone number saved to local storage", Toast.LENGTH_LONG).show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
