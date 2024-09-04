@@ -16,7 +16,7 @@ class _UserEditPageState extends State<UserEditPage> {
   final TextEditingController _verificationCodeController = TextEditingController();
 
   bool _isPhoneNumberEditable = false;
-  bool _showVerificationCodeField = false;
+  final bool _showVerificationCodeField = false;
   String prePhoneNumber="01023326094";
   String _userName="";
   String _userPhone="";
@@ -207,14 +207,14 @@ class _UserEditPageState extends State<UserEditPage> {
                               decoration: InputDecoration(
                                 labelText: _userName,
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 5),
                               ),
                               style: TextStyle(fontSize: fontSize),
                             ),
                           ),
                         ],
                       ),
-                      Divider(height: 16.0, thickness: 1),
+                      const Divider(height: 16.0, thickness: 1),
                       Row(
                         children: [
                           Text(
@@ -233,7 +233,7 @@ class _UserEditPageState extends State<UserEditPage> {
                               decoration: InputDecoration(
                                 border: InputBorder.none,
                                 labelText: _userPhone,
-                                contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 5),
                               ),
                               style: TextStyle(fontSize: fontSize),
                               keyboardType: TextInputType.phone,
@@ -243,7 +243,7 @@ class _UserEditPageState extends State<UserEditPage> {
                         ],
                       ),
                       if (_showVerificationCodeField) ...[
-                        Divider(height: 16.0, thickness: 1),
+                        const Divider(height: 16.0, thickness: 1),
                         Row(
                           children: [
                             Text(

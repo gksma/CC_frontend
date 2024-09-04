@@ -1,9 +1,7 @@
-import 'package:curtaincall/global/user_info.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'page/keypad_page.dart';
 import 'page/settings_page.dart';
-import 'page/add_contact_page.dart';
 import 'page/contacts_page.dart';
 import 'page/recent_calls_page.dart';
 import 'page/user_edit_page.dart';
@@ -25,7 +23,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const KeypadPage(),
         '/settings': (context) => const SettingsPage(),
         // '/add_contact': (context) => const AddContactPage(),
-        '/contacts': (context) => ContactsPage(),
+        '/contacts': (context) => const ContactsPage(),
 
         '/recent_calls': (context) => const RecentCallsPage(),
         '/user_edit': (context) =>  const UserEditPage(),
@@ -37,6 +35,8 @@ class MyApp extends StatelessWidget {
 }
 
 class AppStart extends StatefulWidget {
+  const AppStart({super.key});
+
   @override
   _AppStartState createState() => _AppStartState();
 }
@@ -57,7 +57,7 @@ class _AppStartState extends State<AppStart> {
       // 첫 실행이면 false로 변경하고, IntroPage로 이동
       await prefs.setBool('isFirstLaunch', false);
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => IntroPage()),
+        MaterialPageRoute(builder: (context) => const IntroPage()),
       );
     } else {
       // 이후 실행시 바로 MainPage로 이동

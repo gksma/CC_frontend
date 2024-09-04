@@ -7,21 +7,21 @@ import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
 import 'package:http/http.dart' as http;
 
 class ContactsPage extends StatefulWidget {
-  ContactsPage({super.key});
+  const ContactsPage({super.key});
 
   @override
   _ContactsPageState createState() => _ContactsPageState();
 }
 
 class _ContactsPageState extends State<ContactsPage> {
-  List<Map<String, dynamic>> _contacts = [];
+  final List<Map<String, dynamic>> _contacts = [];
   List<Map<String, dynamic>> _filteredContacts = [];
   String _searchText = '';
   String userPhoneNumber = "01023326094";  // 사용자 전화번호
-  Map<String, bool> _switchStates = {};
-  Map<String, bool> _isEditing = {};
-  Map<String, TextEditingController> _nameControllers = {};
-  Map<String, TextEditingController> _phoneControllers = {};
+  final Map<String, bool> _switchStates = {};
+  final Map<String, bool> _isEditing = {};
+  final Map<String, TextEditingController> _nameControllers = {};
+  final Map<String, TextEditingController> _phoneControllers = {};
 
   @override
   void initState() {
@@ -81,7 +81,7 @@ class _ContactsPageState extends State<ContactsPage> {
             contact.name.first = '';
             contact.name.last = '';
             await contact.update();
-            print('Contact name deleted');
+            print('연락처의 이름이 삭제되었습니다.');
             break;
           }
         }
@@ -214,7 +214,7 @@ class _ContactsPageState extends State<ContactsPage> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: '이름 또는 전화번호 검색',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -236,7 +236,7 @@ class _ContactsPageState extends State<ContactsPage> {
                 ),
               ),
               child: Container(
-                margin: EdgeInsets.all(0.0),
+                margin: const EdgeInsets.all(0.0),
                 padding: EdgeInsets.symmetric(vertical: padding, horizontal: padding),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -262,11 +262,11 @@ class _ContactsPageState extends State<ContactsPage> {
                         ),
                         child: TextField(
                           controller: _nameControllers[phoneNumber],
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: '이름을 입력하세요',
                           ),
                           maxLines: 1,
-                          style: TextStyle(overflow: TextOverflow.ellipsis),
+                          style: const TextStyle(overflow: TextOverflow.ellipsis),
                         ),
                       )
                           : Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
@@ -277,11 +277,11 @@ class _ContactsPageState extends State<ContactsPage> {
                         ),
                         child: TextField(
                           controller: _phoneControllers[phoneNumber],
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: '전화번호를 입력하세요',
                           ),
                           maxLines: 1,
-                          style: TextStyle(overflow: TextOverflow.ellipsis),
+                          style: const TextStyle(overflow: TextOverflow.ellipsis),
                           keyboardType: TextInputType.phone,
                         ),
                       )
@@ -326,7 +326,7 @@ class _ContactsPageState extends State<ContactsPage> {
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0),
+      bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 0),
     );
   }
 }
