@@ -1,10 +1,7 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
-import '../dto/Contact.dart';
-import 'package:http/http.dart' as http;
 class AddContactPage extends StatefulWidget {
   const AddContactPage({super.key});
 
@@ -116,7 +113,7 @@ class _AddContactPageState extends State<AddContactPage> {
                           ),
                         ],
                       ),
-                      Divider(height: 16.0, thickness: 1), // Divider 크기 조정
+                      const Divider(height: 16.0, thickness: 1), // Divider 크기 조정
                       Row(
                         children: [
                           Text(
@@ -160,7 +157,7 @@ class _AddContactPageState extends State<AddContactPage> {
           ),
         ),
       ),
-      bottomNavigationBar: CommonBottomNavigationBar(currentIndex: 0), // 연락처 추가 페이지가 선택된 상태로 설정
+      bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 0), // 연락처 추가 페이지가 선택된 상태로 설정
     );
   }
 }

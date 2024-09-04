@@ -3,7 +3,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class KeypadPage extends StatefulWidget {
   const KeypadPage({super.key});
@@ -208,7 +207,7 @@ class _KeypadPageState extends State<KeypadPage> {
               ],
             ),
           ),
-          CommonBottomNavigationBar(currentIndex: 1), // 키패드 페이지가 선택된 상태로 설정
+          const CommonBottomNavigationBar(currentIndex: 1), // 키패드 페이지가 선택된 상태로 설정
         ],
       ),
     );
