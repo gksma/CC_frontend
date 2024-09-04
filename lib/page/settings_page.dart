@@ -1,4 +1,3 @@
-import 'package:curtaincall/page/user_edit_page.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,9 +17,8 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _isCurtainCallOn = false; // 커튼콜 초기 상태
-  String _userName='';// 사용자 이름
+  String _userName = ''; // 사용자 이름
   String _userPhone = ''; // 사용자 전화번호
-  bool _isCurtainCallOnAndOff=false;
 
   @override
   void initState() {
@@ -37,81 +35,79 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _fetchUserProfileWithConnection() async {
-    //참고1 현재는 임의의 값으로 되어 있지만, 어플 사용자의 전화번호를 찾아서 setting을 해줘야함.
-    String userPhoneNumber="01023326094";
+    // 사용자 전화번호 가져오기
+    String userPhoneNumber = "01023326094"; // 실제 앱에서는 동적으로 받아와야 합니다.
 
-    //참고2 현재는 android emulator의 로컬 주소로 되어있지만 실제로 배포하게 되면 백엔드 단에서 넘겨준
-    //인스턴스의 주소를 사용해야함.
     final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user?phoneNumber=$userPhoneNumber'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
         _userName = data['nickName'];
-        _userPhone=userPhoneNumber;
-        _isCurtainCallOnAndOff=data["isCurtainCallOnAndOff"];
+        _userPhone = userPhoneNumber;
+        _isCurtainCallOn = data["isCurtainCallOnAndOff"];
       });
     } else {
-      // 에러 처리
       print('Failed to load user profile');
     }
   }
+
   Future<void> _saveCurtainCallState(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isCurtainCallOn', value);
   }
 
-  Future<void> _requestPermissions() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.phone,
-      Permission.contacts,
-      Permission.camera,
-      Permission.microphone,
-    ].request();
+  Future<void> _rollbackUserData() async {
+    final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user/rollback?phoneNumber=$_userPhone'));
 
-    bool allGranted = statuses.values.every((status) => status.isGranted);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print(data);
+      final List<dynamic> restoredContacts = data['response'][_userPhone];
 
-    if (!allGranted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('권한 거부됨'),
-          content: const Text('필수 권한을 모두 동의해야 앱을 사용할 수 있습니다.'),
+      // 복구된 데이터 처리 로직
+      setState(() {
+        // 여기서는 복구된 연락처 데이터를 _isCurtainCallOn 상태에 반영합니다.
+        _isCurtainCallOn = false; // 복구 후 CurtainCall은 기본적으로 OFF 상태로 설정
+        // 추가로 _contacts 리스트 등을 업데이트하는 로직이 있을 수 있습니다.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('연락처 정보가 성공적으로 복구되었습니다.')),
+        );
+      });
+    } else {
+      print('Failed to rollback user data');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('연락처 정보 복구에 실패했습니다.')),
+      );
+    }
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('확인'),
+          content: Text('정말 연락처 정보를 원상복구 하시겠습니까?'),
           actions: [
             TextButton(
-              child: const Text('종료'),
+              child: Text('아니오'),
               onPressed: () {
-                SystemNavigator.pop();
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+              },
+            ),
+            TextButton(
+              child: Text('예'),
+              onPressed: () async {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+                await _rollbackUserData(); // 사용자 데이터 롤백
               },
             ),
           ],
-        ),
-      );
-    } else {
-      setState(() {
-        _isCurtainCallOn = true;
-      });
-      await _saveCurtainCallState(true);
-    }
-  }
-
-  Future<void> _revokePermissions() async {
-    await _saveCurtainCallState(false);
-    setState(() {
-      _isCurtainCallOn = false;
-    });
-  }
-
-  Future<void> _checkAndRequestPermissions() async {
-    bool phoneGranted = await Permission.phone.isGranted;
-    bool contactsGranted = await Permission.contacts.isGranted;
-    bool cameraGranted = await Permission.camera.isGranted;
-    bool microphoneGranted = await Permission.microphone.isGranted;
-
-    if (!phoneGranted || !contactsGranted || !cameraGranted || !microphoneGranted) {
-      await _requestPermissions();
-    }
+        );
+      },
+    );
   }
 
   @override
@@ -120,7 +116,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final double padding = screenSize.width * 0.04;
     final double iconSize = screenSize.width * 0.2;
     final double fontSize = screenSize.width * 0.045;
-    final double switchFontSize = screenSize.width * 0.035;
+    final double buttonFontSize = screenSize.width * 0.04;
 
     return Scaffold(
       appBar: AppBar(
@@ -156,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       Icon(Icons.person, size: iconSize),
                       SizedBox(height: padding),
                       Text(_userName, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
-                      Text(_userPhone, style: TextStyle(fontSize: switchFontSize)),
+                      Text(_userPhone, style: TextStyle(fontSize: buttonFontSize)),
                     ],
                   ),
                 ),
@@ -170,27 +166,26 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('커튼콜 ON / OFF', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
-                            Text('커튼콜 기능 켜고 끄기\n(ON으로 설정 시, 시스템 전화 요청)', style: TextStyle(fontSize: switchFontSize)),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('연락처 원상복구', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                              Text('숨겨진 사용자의 정보들 원상복구', style: TextStyle(fontSize: buttonFontSize)),
+                              Text('(앱 삭제 시 반드시 OFF 후 삭제)', style: TextStyle(fontSize: buttonFontSize, color: Colors.red)),
+                            ],
+                          ),
                         ),
-                        Switch(
-                          value: _isCurtainCallOnAndOff,
-                          onChanged: (value) async {
-                            if (value) {
-                              await _checkAndRequestPermissions();
-                            } else {
-                              await _revokePermissions();
-                            }
-                            setState(() {
-                              _isCurtainCallOn = value;
-                            });
-                            await _saveCurtainCallState(value);
-                          },
-                          activeColor: Colors.green,
+                        OutlinedButton(
+                          onPressed: _showConfirmationDialog, // 버튼을 누르면 확인 다이얼로그 표시
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            side: BorderSide(color: Colors.red),
+                          ),
+                          child: Text(
+                            '복구',
+                            style: TextStyle(color: Colors.red, fontSize: buttonFontSize),
+                          ),
                         ),
                       ],
                     ),
