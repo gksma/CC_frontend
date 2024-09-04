@@ -22,21 +22,31 @@ class MainActivity : AppCompatActivity() {
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
-        // 권한을 확인하고 요청
-        checkAndRequestPermissions()
+        // 저장된 전화번호가 있는지 확인
+        val phoneNumber = getPhoneNumberFromSharedPreferences()
+
+        if (phoneNumber != null) {
+            // 저장된 전화번호가 있으면 바로 FlutterActivity로 전환
+            launchFlutterActivity()
+        } else {
+            // 전화번호가 없으면 권한을 확인하고 요청
+            checkAndRequestPermissions()
+        }
     }
 
+    // 권한 확인 및 요청
     private fun checkAndRequestPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_PHONE_STATE), 1)
         } else {
-            // 권한이 이미 허가된 경우
+            // 권한이 이미 허가된 경우 전화번호 가져오기
             getPhoneNumber()
-            // FlutterActivity로 바로 전환
+            // FlutterActivity로 전환
             launchFlutterActivity()
         }
     }
 
+    // 전화번호 가져오기
     private fun getPhoneNumber() {
         try {
             val telephonyManager = getSystemService(TELEPHONY_SERVICE) as? TelephonyManager
@@ -67,6 +77,13 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Phone number saved to local storage", Toast.LENGTH_LONG).show()
     }
 
+    // SharedPreferences에서 전화번호 가져오기
+    private fun getPhoneNumberFromSharedPreferences(): String? {
+        val sharedPref = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        return sharedPref.getString("phone_number", null)
+    }
+
+    // 권한 요청 결과 처리
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -75,13 +92,13 @@ class MainActivity : AppCompatActivity() {
             launchFlutterActivity()
         } else {
             Toast.makeText(this, "Permission Denied", Toast.LENGTH_LONG).show()
-            // 권한이 없으므로 FlutterActivity로만 전환
+            // 권한이 없을 경우에도 FlutterActivity로 전환
             launchFlutterActivity()
         }
     }
 
+    // FlutterActivity로 전환
     private fun launchFlutterActivity() {
-        // FlutterActivity로 전환
         val intent = FlutterActivity.createDefaultIntent(this)
         startActivity(intent)
         finish() // 현재 Activity 종료
