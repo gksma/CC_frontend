@@ -13,6 +13,8 @@ import androidx.databinding.DataBindingUtil
 import com.example.curtaincall.R
 import com.example.curtaincall.databinding.ActivityMainBinding
 import io.flutter.embedding.android.FlutterActivity
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -23,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         // 저장된 전화번호가 있는지 확인
-        val phoneNumber = getPhoneNumberFromSharedPreferences()
+        val phoneNumber = getPhoneNumberFromFile()
 
         if (phoneNumber != null) {
             // 저장된 전화번호가 있으면 바로 FlutterActivity로 전환
@@ -55,8 +57,9 @@ class MainActivity : AppCompatActivity() {
                 if (phoneNumber.isNullOrEmpty()) {
                     Toast.makeText(this, "Unable to retrieve phone number", Toast.LENGTH_LONG).show()
                 } else {
-                    // 전화번호를 SharedPreferences에 저장
-                    savePhoneNumberToSharedPreferences(phoneNumber)
+                    Toast.makeText(this, "Retrieved phone number: $phoneNumber", Toast.LENGTH_LONG).show()
+                    // 전화번호를 파일에 저장
+                    savePhoneNumberToFile(phoneNumber)
                 }
             } else {
                 Toast.makeText(this, "TelephonyManager is not available", Toast.LENGTH_LONG).show()
@@ -67,20 +70,33 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // SharedPreferences에 전화번호 저장
-    private fun savePhoneNumberToSharedPreferences(phoneNumber: String) {
-        val sharedPref = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-        with(sharedPref.edit()) {
-            putString("phone_number", phoneNumber)
-            apply() // 저장
+    // 전화번호를 파일에 저장
+    private fun savePhoneNumberToFile(phoneNumber: String) {
+        try {
+            val fileName = "phone_number.txt"
+            val fileOutputStream: FileOutputStream = openFileOutput(fileName, Context.MODE_PRIVATE)
+            fileOutputStream.write(phoneNumber.toByteArray())
+            fileOutputStream.close()
+
+            Toast.makeText(this, "Phone number saved to file", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to save phone number: ${e.message}", Toast.LENGTH_LONG).show()
         }
-        Toast.makeText(this, "Phone number saved to local storage", Toast.LENGTH_LONG).show()
     }
 
-    // SharedPreferences에서 전화번호 가져오기
-    private fun getPhoneNumberFromSharedPreferences(): String? {
-        val sharedPref = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-        return sharedPref.getString("phone_number", null)
+    // 파일에서 전화번호 가져오기
+    private fun getPhoneNumberFromFile(): String? {
+        return try {
+            val fileName = "phone_number.txt"
+            val file = File(filesDir, fileName)
+            if (file.exists()) {
+                file.readText()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null // 파일이 없거나 읽기에 실패한 경우 null 반환
+        }
     }
 
     // 권한 요청 결과 처리
