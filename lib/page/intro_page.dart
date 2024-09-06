@@ -1,8 +1,8 @@
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import 'keypad_page.dart';
@@ -26,8 +26,10 @@ class _IntroPageState extends State<IntroPage> {
   @override
   void initState() {
     super.initState();
-    // 페이지가 로드되자마자 API 호출
-    _checkIfUser();
+    // 비동기 처리를 마친 후에 로직을 수행하도록 설정
+    Future.microtask(() {
+      _checkIfUser();
+    });
   }
 
   // 사용자인지 확인하는 API 호출
@@ -37,7 +39,7 @@ class _IntroPageState extends State<IntroPage> {
     });
 
     try {
-      // SharedPreferences에서 저장된 전화번호 가져오기
+      // 파일 시스템에서 저장된 전화번호 가져오기
       final String? phoneNumber = await _getStoredPhoneNumber();
 
       if (phoneNumber == null || phoneNumber.isEmpty) {
@@ -95,10 +97,42 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // SharedPreferences에서 저장된 전화번호 가져오기
+  // Android의 기본 파일 경로 사용
+  Future<String> _getNativeFilePath() async {
+    return '/data/data/com.example.curtaincall/files';
+  }
+
+  // 네이티브 파일 시스템에서 저장된 전화번호 가져오기
   Future<String?> _getStoredPhoneNumber() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('phone_number'); // 'phone_number' 키로 저장된 번호를 가져옴
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
+
+      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
+      if (await file.exists()) {
+        final phoneNumber = await file.readAsString();
+        print('저장된 전화번호: $phoneNumber');
+        return phoneNumber;
+      } else {
+        print("전화번호가 저장된 파일이 없습니다. 경로: ${file.path}");
+        return null;
+      }
+    } catch (e) {
+      print("파일 읽기 오류: $e");
+      return null;
+    }
+  }
+
+  // 전화번호 네이티브 파일 시스템에 저장
+  Future<void> _savePhoneNumberToFile(String phoneNumber) async {
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
+      await file.writeAsString(phoneNumber);
+      print("전화번호가 파일에 저장되었습니다. 경로: ${file.path}");
+    } catch (e) {
+      print("파일 저장 오류: $e");
+    }
   }
 
   // 전화번호로 인증번호 발송 API 호출
@@ -153,7 +187,7 @@ class _IntroPageState extends State<IntroPage> {
     try {
       final response = await http.get(url);
 
-      if (response.statusCode == 200 && response.body=="true") {
+      if (response.statusCode == 200 && response.body == "true") {
         // 인증에 성공한 경우 사용자 정보 저장
         await _saveUserInfo();
         // 전화번호부 정보 저장
@@ -332,83 +366,32 @@ class _IntroPageState extends State<IntroPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            children: [
-              SizedBox(height: padding),
-              Icon(Icons.person_add, size: iconSize),
-              SizedBox(height: padding),
-              Container(
+              child: Padding(
                 padding: EdgeInsets.all(padding),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(32),
-                ),
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '이름 >',
-                            style: TextStyle(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _nameController,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 5),
-                              ),
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          ),
-                        ],
+                child: Column(
+                  children: [
+                    SizedBox(height: padding),
+                    Icon(Icons.person_add, size: iconSize),
+                    SizedBox(height: padding),
+                    Container(
+                      padding: EdgeInsets.all(padding),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(32),
                       ),
-                      const Divider(height: 16.0, thickness: 1),
-                      Row(
-                        children: [
-                          Text(
-                            '전화번호 >',
-                            style: TextStyle(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _phoneController,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 5),
-                              ),
-                              style: TextStyle(fontSize: fontSize),
-                              keyboardType: TextInputType.phone,
-                              onChanged: _onPhoneChanged,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8.0),
-                      if (_showVerificationField)
-                        Column(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            vertical: padding, horizontal: margin),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
                           children: [
-                            const Divider(height: 16.0, thickness: 1),
                             Row(
                               children: [
                                 Text(
-                                  '인증번호 >',
+                                  '이름 >',
                                   style: TextStyle(
                                     fontSize: fontSize,
                                     fontWeight: FontWeight.bold,
@@ -417,41 +400,101 @@ class _IntroPageState extends State<IntroPage> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: TextField(
-                                    controller: _verificationCodeController,
+                                    controller: _nameController,
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                      contentPadding:
+                                          EdgeInsets.symmetric(vertical: 5),
                                     ),
                                     style: TextStyle(fontSize: fontSize),
-                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 16.0, thickness: 1),
+                            Row(
+                              children: [
+                                Text(
+                                  '전화번호 >',
+                                  style: TextStyle(
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _phoneController,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      contentPadding:
+                                          EdgeInsets.symmetric(vertical: 5),
+                                    ),
+                                    style: TextStyle(fontSize: fontSize),
+                                    keyboardType: TextInputType.phone,
+                                    onChanged: _onPhoneChanged,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8.0),
+                            if (_showVerificationField)
+                              Column(
+                                children: [
+                                  const Divider(
+                                      height: 16.0, thickness: 1),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '인증번호 >',
+                                        style: TextStyle(
+                                          fontSize: fontSize,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextField(
+                                          controller:
+                                              _verificationCodeController,
+                                          decoration: const InputDecoration(
+                                            border: InputBorder.none,
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                    vertical: 5),
+                                          ),
+                                          style: TextStyle(fontSize: fontSize),
+                                          keyboardType: TextInputType.number,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8.0),
+                                ],
+                              ),
                           ],
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                    SizedBox(height: padding), // 아래쪽 여백 추가
+                    SizedBox(
+                      width: double.infinity,
+                      height: buttonHeight,
+                      child: ElevatedButton(
+                        onPressed: _showVerificationField
+                            ? () => _verifyCode(
+                                _phoneController.text,
+                                _verificationCodeController.text,
+                              )
+                            : _saveContact,
+                        child: Text(_showVerificationField ? '확인' : '인증',
+                            style: TextStyle(fontSize: fontSize)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: padding), // 아래쪽 여백 추가
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: ElevatedButton(
-                  onPressed: _showVerificationField
-                      ? () => _verifyCode(_phoneController.text, _verificationCodeController.text)
-                      : _saveContact,
-                  child: Text(_showVerificationField ? '확인' : '인증', style: TextStyle(fontSize: fontSize)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }
-
-

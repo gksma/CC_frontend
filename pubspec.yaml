@@ -38,6 +38,7 @@ dependencies:
   flutter_contacts : ^1.1.9
   flutter_phone_direct_caller : ^2.1.1
   fluttertoast : ^8.2.8
+  path_provider : ^2.0.11
 
 
 
