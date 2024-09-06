@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
 import 'package:http/http.dart' as http;
@@ -17,7 +18,7 @@ class _ContactsPageState extends State<ContactsPage> {
   final List<Map<String, dynamic>> _contacts = [];
   List<Map<String, dynamic>> _filteredContacts = [];
   String _searchText = '';
-  String userPhoneNumber = "01023326094";  // 사용자 전화번호
+  String userPhoneNumber = "";  // 사용자 전화번호 (초기값 비움)
   final Map<String, bool> _switchStates = {};
   final Map<String, bool> _isEditing = {};
   final Map<String, TextEditingController> _nameControllers = {};
@@ -27,7 +28,26 @@ class _ContactsPageState extends State<ContactsPage> {
   void initState() {
     super.initState();
     _requestPermissions();
-    _fetchPhoneBookProfileWithConnection();
+    _loadUserPhoneNumber();
+  }
+
+  // SharedPreferences에서 저장된 전화번호 가져오기
+  Future<void> _loadUserPhoneNumber() async {
+    String? storedPhoneNumber = await _getStoredPhoneNumber();
+    if (storedPhoneNumber != null) {
+      setState(() {
+        userPhoneNumber = storedPhoneNumber;
+      });
+      // 번호를 가져온 후, 연락처 데이터를 가져오는 함수 호출
+      _fetchPhoneBookProfileWithConnection();
+    } else {
+      print('저장된 전화번호가 없습니다.');
+    }
+  }
+
+  Future<String?> _getStoredPhoneNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('phone_number'); // 'phone_number' 키로 저장된 번호를 가져옴
   }
 
   Future<void> _requestPermissions() async {
@@ -40,6 +60,8 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   Future<void> _fetchPhoneBookProfileWithConnection() async {
+    if (userPhoneNumber.isEmpty) return;  // 전화번호가 없으면 함수 종료
+
     final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'));
 
     if (response.statusCode == 200) {
@@ -65,8 +87,43 @@ class _ContactsPageState extends State<ContactsPage> {
         }
         _filteredContacts = _contacts;
       });
+
+      // 서버로 연락처 데이터를 전송, 어셈블할때 주석 해제
+      await _sendContactsToBackend();
+
     } else {
       print('Failed to load user profile');
+    }
+  }
+
+  Future<void> _sendContactsToBackend() async {
+    final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo';
+    final Map<String, List<Map<String, dynamic>>> dataToSend = {
+      userPhoneNumber: _contacts.map((contact) {
+        return {
+          'name': contact['name'],
+          'phoneNumber': contact['phone'],
+          'isCurtainCallOnAndOff': contact['isCurtainCallOnAndOff'] ?? false,
+        };
+      }).toList()
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(dataToSend),
+      );
+
+      // if (response.statusCode == 200) {
+      //   print("연락처 데이터 전송 성공");
+      // } else {
+      //   print("연락처 데이터 전송 실패: ${response.statusCode}");
+      // }
+    } catch (e) {
+      print("서버로 데이터 전송 중 오류 발생: $e");
     }
   }
 

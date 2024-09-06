@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import 'keypad_page.dart';
 
@@ -30,32 +32,43 @@ class _IntroPageState extends State<IntroPage> {
 
   // 사용자인지 확인하는 API 호출
   Future<void> _checkIfUser() async {
-    const String phoneNumber = "01023326094"; // 이 값을 실제로 어디서 가져오는지에 따라 변경 가능
-
-    final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser?phoneNumber=$phoneNumber');
     setState(() {
       _isLoading = true;
     });
-    // final response = await http.get(url);
+
     try {
+      // SharedPreferences에서 저장된 전화번호 가져오기
+      final String? phoneNumber = await _getStoredPhoneNumber();
+
+      if (phoneNumber == null || phoneNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('저장된 전화번호가 없습니다.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser?phoneNumber=$phoneNumber');
 
       final response = await http.get(url);
-      print(response.body);
+
       if (response.statusCode == 200) {
-        if(response.body=='true') {
-          // API 응답이 200인 경우, 사용자인지 여부를 확인
+        if (response.body == 'true') {
           setState(() {
-            _isUser = true; // 예를 들어 사용자가 맞으면 true로 설정
+            _isUser = true;
           });
 
           // 사용자가 맞으면 다른 페이지로 이동
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-                builder: (context) => const KeypadPage()), // HomePage로 이동
+            MaterialPageRoute(builder: (context) => const KeypadPage()),
           );
-        }
-        else{
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('사용자 인증을 해주세요!'),
@@ -63,9 +76,7 @@ class _IntroPageState extends State<IntroPage> {
             ),
           );
         }
-      }
-      else {
-        // 사용자가 아닌 경우나 오류 발생 시
+      } else {
         setState(() {
           _isUser = false;
         });
@@ -82,6 +93,12 @@ class _IntroPageState extends State<IntroPage> {
         _isLoading = false;
       });
     }
+  }
+
+  // SharedPreferences에서 저장된 전화번호 가져오기
+  Future<String?> _getStoredPhoneNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('phone_number'); // 'phone_number' 키로 저장된 번호를 가져옴
   }
 
   // 전화번호로 인증번호 발송 API 호출
@@ -198,43 +215,49 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 전화번호부 정보를 저장하는 API 호출
+  // 전화번호부 정보를 저장하는 API 호출 (로컬 연락처 가져오기)
   Future<void> _savePhoneBookInfo() async {
     final url = Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo');
-    final phoneBookData = {
-      _phoneController.text: [
-        {
-          "name": "Jho",
-          "phoneNumber": "01012346094",
-          "isCurtainCallOnAndOff": false
-        },
-        {
-          "name": "sdasd",
-          "phoneNumber": "01050693231",
-          "isCurtainCallOnAndOff": false
-        },
-        {
-          "name": "ertty",
-          "phoneNumber": "01060593232",
-          "isCurtainCallOnAndOff": true
+
+    // 연락처 권한 요청
+    if (await FlutterContacts.requestPermission()) {
+      // 로컬 연락처 가져오기
+      List<Contact> contacts = await FlutterContacts.getContacts(withProperties: true);
+
+      // API 프로토콜에 맞게 전화번호부 데이터를 구성
+      final Map<String, List<Map<String, dynamic>>> phoneBookData = {
+        _phoneController.text: contacts.map((contact) {
+          return {
+            "name": contact.displayName ?? '', // 이름이 없으면 빈 문자열
+            "phoneNumber": contact.phones.isNotEmpty ? contact.phones.first.number : '', // 전화번호가 없으면 빈 문자열
+            "isCurtainCallOnAndOff": false // 기본값 설정
+          };
+        }).toList()
+      };
+
+      // POST 요청을 통해 데이터를 서버로 전송
+      try {
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(phoneBookData),
+        );
+
+        if (response.statusCode == 200) {
+          print('Phone book information saved successfully');
+        } else {
+          print('Failed to save phone book information: ${response.statusCode}');
         }
-      ]
-    };
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode(phoneBookData),
-    );
-
-    if (response.statusCode == 200) {
-      print('Phone book information saved successfully');
+      } catch (e) {
+        print('Error saving phone book information: $e');
+      }
     } else {
-      print('Failed to save phone book information');
+      print('Contacts permission denied');
     }
   }
+
   void _saveContact() {
     final String name = _nameController.text;
     final String phoneNumber = _phoneController.text;
