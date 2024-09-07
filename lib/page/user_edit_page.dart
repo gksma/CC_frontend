@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert'; // JSON 처리용 패키지
+import 'package:path/path.dart' as path;
 
 class UserEditPage extends StatefulWidget {
   const UserEditPage({super.key});
@@ -45,10 +49,33 @@ class _UserEditPageState extends State<UserEditPage> {
       return;
     }
   }
+
+  Future<String> _getNativeFilePath() async {
+    return '/data/data/com.example.curtaincall/files';
+  }
+  Future<String?> _getStoredPhoneNumber() async {
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
+      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
+      if (await file.exists()) {
+        final phoneNumber = await file.readAsString();
+        print('저장된 전화번호: $phoneNumber');
+        return phoneNumber;
+      } else {
+        print("전화번호가 저장된 파일이 없습니다. 경로: ${file.path}");
+        return null;
+      }
+    } catch (e) {
+      print("파일 읽기 오류: $e");
+      return null;
+    }
+  }
     Future<void> _fetchUserProfileWithConnection() async {
       //참고1 현재는 임의의 값으로 되어 있지만, 어플 사용자의 전화번호를 찾아서 setting을 해줘야함.
-      String userPhoneNumber="01023326094";
+      String? userPhoneNumber=await _getStoredPhoneNumber();
 
+      userPhoneNumber=toUrlNumber(userPhoneNumber!);
       //참고2 현재는 android emulator의 로컬 주소로 되어있지만 실제로 배포하게 되면 백엔드 단에서 넘겨준
       //인스턴스의 주소를 사용해야함.
       final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user?phoneNumber=$userPhoneNumber'));
@@ -57,7 +84,7 @@ class _UserEditPageState extends State<UserEditPage> {
         final data = json.decode(response.body);
         setState(() {
           _userName = data['nickName'];
-          _userPhone=userPhoneNumber;
+          _userPhone=userPhoneNumber!;
         });
       } else {
         // 에러 처리

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -6,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
 import 'package:http/http.dart' as http;
-
+import 'package:path/path.dart' as path;
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
 
@@ -34,9 +36,11 @@ class _ContactsPageState extends State<ContactsPage> {
   // SharedPreferences에서 저장된 전화번호 가져오기
   Future<void> _loadUserPhoneNumber() async {
     String? storedPhoneNumber = await _getStoredPhoneNumber();
+    // storedPhoneNumber=toUrlNumber(storedPhoneNumber!);
+
     if (storedPhoneNumber != null) {
       setState(() {
-        userPhoneNumber = storedPhoneNumber;
+        userPhoneNumber = storedPhoneNumber!;
       });
       // 번호를 가져온 후, 연락처 데이터를 가져오는 함수 호출
       _fetchPhoneBookProfileWithConnection();
@@ -44,10 +48,26 @@ class _ContactsPageState extends State<ContactsPage> {
       print('저장된 전화번호가 없습니다.');
     }
   }
-
+  Future<String> _getNativeFilePath() async {
+    return '/data/data/com.example.curtaincall/files';
+  }
   Future<String?> _getStoredPhoneNumber() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('phone_number'); // 'phone_number' 키로 저장된 번호를 가져옴
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
+      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
+      if (await file.exists()) {
+        final phoneNumber = await file.readAsString();
+        print('저장된 전화번호: $phoneNumber');
+        return phoneNumber;
+      } else {
+        print("전화번호가 저장된 파일이 없습니다. 경로: ${file.path}");
+        return null;
+      }
+    } catch (e) {
+      print("파일 읽기 오류: $e");
+      return null;
+    }
   }
 
   Future<void> _requestPermissions() async {
@@ -62,6 +82,7 @@ class _ContactsPageState extends State<ContactsPage> {
   Future<void> _fetchPhoneBookProfileWithConnection() async {
     if (userPhoneNumber.isEmpty) return;  // 전화번호가 없으면 함수 종료
 
+    userPhoneNumber=toUrlNumber(userPhoneNumber);
     final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'));
 
     if (response.statusCode == 200) {
@@ -89,7 +110,7 @@ class _ContactsPageState extends State<ContactsPage> {
       });
 
       // 서버로 연락처 데이터를 전송, 어셈블할때 주석 해제
-      await _sendContactsToBackend();
+      // await _sendContactsToBackend();
 
     } else {
       print('Failed to load user profile');
@@ -97,7 +118,7 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   Future<void> _sendContactsToBackend() async {
-    final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo';
+    final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo?';
     final Map<String, List<Map<String, dynamic>>> dataToSend = {
       userPhoneNumber: _contacts.map((contact) {
         return {
