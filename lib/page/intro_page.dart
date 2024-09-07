@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
+import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
@@ -40,7 +42,7 @@ class _IntroPageState extends State<IntroPage> {
 
     try {
       // 파일 시스템에서 저장된 전화번호 가져오기
-      final String? phoneNumber = await _getStoredPhoneNumber();
+      String? phoneNumber = await _getStoredPhoneNumber();
 
       if (phoneNumber == null || phoneNumber.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -55,6 +57,8 @@ class _IntroPageState extends State<IntroPage> {
         return;
       }
 
+
+      phoneNumber=toUrlNumber(phoneNumber);
       final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser?phoneNumber=$phoneNumber');
 
       final response = await http.get(url);
@@ -107,7 +111,6 @@ class _IntroPageState extends State<IntroPage> {
     try {
       final nativeDirectory = await _getNativeFilePath();
       final file = File(path.join(nativeDirectory, 'phone_number.txt'));
-
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
         final phoneNumber = await file.readAsString();

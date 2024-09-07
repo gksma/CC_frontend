@@ -1,6 +1,9 @@
+import 'dart:io';
+
+import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:path/path.dart' as path;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -31,17 +34,41 @@ class _SettingsPageState extends State<SettingsPage> {
       _isCurtainCallOn = prefs.getBool('isCurtainCallOn') ?? false;
     });
   }
+  Future<String> _getNativeFilePath() async {
+    return '/data/data/com.example.curtaincall/files';
+  }
+  Future<String?> _getStoredPhoneNumber() async {
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
+      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
+      if (await file.exists()) {
+        final phoneNumber = await file.readAsString();
+        print('저장된 전화번호: $phoneNumber');
+        return phoneNumber;
+      } else {
+        print("전화번호가 저장된 파일이 없습니다. 경로: ${file.path}");
+        return null;
+      }
+    } catch (e) {
+      print("파일 읽기 오류: $e");
+      return null;
+    }
+  }
 
   Future<void> _fetchUserProfileWithConnection() async {
-    String userPhoneNumber = "01023326094"; // 실제 앱에서는 동적으로 받아와야 합니다.
-
+    String? userPhoneNumber = await _getStoredPhoneNumber();
+    userPhoneNumber=toUrlNumber(userPhoneNumber!);
     final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user?phoneNumber=$userPhoneNumber'));
+
+    print(response);
+
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
         _userName = data['nickName'];
-        _userPhone = userPhoneNumber;
+        _userPhone = userPhoneNumber!;
         _isCurtainCallOn = data["isCurtainCallOnAndOff"];
       });
     } else {
