@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
+import 'utill.dart';
+
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
 
@@ -20,41 +19,41 @@ class _ContactsPageState extends State<ContactsPage> {
   final List<Map<String, dynamic>> _contacts = [];
   List<Map<String, dynamic>> _filteredContacts = [];
   String _searchText = '';
-  String userPhoneNumber = "";  // 사용자 전화번호 (초기값 비움)
+  String userPhoneNumber = ""; // 사용자 전화번호 (초기값 비움)
   final Map<String, bool> _switchStates = {};
-  final Map<String, bool> _isEditing = {};
+  final Map<String, bool> _isEditing = {}; // 연락처 편집 상태 저장
   final Map<String, TextEditingController> _nameControllers = {};
   final Map<String, TextEditingController> _phoneControllers = {};
 
   @override
   void initState() {
     super.initState();
-    _requestPermissions();
     _loadUserPhoneNumber();
   }
 
-  // SharedPreferences에서 저장된 전화번호 가져오기
+  // 로컬에서 전화번호를 로드하고 백엔드로 연락처를 전송한 뒤, 백엔드에서 연락처 정보를 가져와서 표시
   Future<void> _loadUserPhoneNumber() async {
     String? storedPhoneNumber = await _getStoredPhoneNumber();
-    // storedPhoneNumber=toUrlNumber(storedPhoneNumber!);
 
     if (storedPhoneNumber != null) {
       setState(() {
-        userPhoneNumber = storedPhoneNumber!;
+        userPhoneNumber = toUrlNumber(storedPhoneNumber); // + 제거
       });
-      // 번호를 가져온 후, 연락처 데이터를 가져오는 함수 호출
-      _fetchPhoneBookProfileWithConnection();
+      // 로컬 연락처를 가져와 백엔드로 전송
+      await _fetchLocalContactsAndSendToBackend();
+      // 백엔드에서 연락처 정보를 가져와 화면에 표시
+      _fetchContactsFromBackend();
     } else {
       print('저장된 전화번호가 없습니다.');
     }
   }
-  Future<String> _getNativeFilePath() async {
-    return '/data/data/com.example.curtaincall/files';
-  }
+
+  // 로컬에서 저장된 전화번호 가져오기
   Future<String?> _getStoredPhoneNumber() async {
     try {
       final nativeDirectory = await _getNativeFilePath();
       final file = File(path.join(nativeDirectory, 'phone_number.txt'));
+
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
         final phoneNumber = await file.readAsString();
@@ -70,195 +69,297 @@ class _ContactsPageState extends State<ContactsPage> {
     }
   }
 
-  Future<void> _requestPermissions() async {
-    if (await Permission.contacts.request().isGranted) {
-      // 권한이 허용된 경우 연락처 접근 가능
-    } else {
-      // 권한이 거부된 경우 사용자에게 알림
-      print("Contacts permission denied");
-    }
+  // 로컬 파일 경로 반환 함수
+  Future<String> _getNativeFilePath() async {
+    return '/data/data/com.example.curtaincall/files';
   }
 
-  Future<void> _fetchPhoneBookProfileWithConnection() async {
-    if (userPhoneNumber.isEmpty) return;  // 전화번호가 없으면 함수 종료
-
-    userPhoneNumber=toUrlNumber(userPhoneNumber);
-    final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'));
+  // DB에서 이미 저장된 연락처 가져오기
+  Future<List<Map<String, dynamic>>> _fetchContactsFromDB() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'),
+    );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final List<dynamic> contactList = data["response"][userPhoneNumber];
-
-      setState(() {
-        for (var contact in contactList) {
-          _contacts.add({
+      if (data["response"] != null && data["response"][userPhoneNumber] != null) {
+        final List<dynamic> contactList = data["response"][userPhoneNumber];
+        return contactList.map((contact) {
+          return {
             "name": contact["name"],
             "phone": contact["phoneNumber"],
             "isCurtainCallOnAndOff": contact["isCurtainCallOnAndOff"],
-          });
-          _switchStates[contact["phoneNumber"]] = contact["isCurtainCallOnAndOff"];
-          _isEditing[contact["phoneNumber"]] = false;
-          _nameControllers[contact["phoneNumber"]] = TextEditingController(text: contact["name"]);
-          _phoneControllers[contact["phoneNumber"]] = TextEditingController(text: contact["phoneNumber"]);
+          };
+        }).toList();
+      }
+    }
+    return [];
+  }
 
-          // isCurtainCallOnAndOff가 true인 경우 이름 삭제
-          if (contact["isCurtainCallOnAndOff"]) {
-            _deleteContactName(contact["phoneNumber"]);
+  // 로컬 연락처 가져오기 -> 중복된 연락처 제외 후 백엔드로 전송
+  Future<void> _fetchLocalContactsAndSendToBackend() async {
+    try {
+      if (await Permission.contacts.request().isGranted) {
+        final contacts = await FlutterContacts.getContacts(withProperties: true, withAccounts: true);
+
+        if (contacts.isEmpty) {
+          print("로컬 연락처가 비어 있습니다.");
+        } else {
+          print("로컬에서 ${contacts.length}개의 연락처를 불러왔습니다.");
+
+          // 1. DB에서 이미 저장된 연락처 가져오기
+          final dbContacts = await _fetchContactsFromDB();
+          final dbPhoneNumbers = dbContacts.map((c) => c['phone']).toSet(); // DB에 있는 전화번호 목록
+
+          // 2. 로컬 연락처 중 DB에 없는 연락처만 필터링
+          final newContacts = contacts.where((contact) {
+            final phoneNumber = contact.phones.isNotEmpty ? contact.phones.first.number : "";
+            return !dbPhoneNumbers.contains(phoneNumber); // DB에 없는 번호만 필터링
+          }).toList();
+
+          // 3. 중복되지 않는 연락처만 서버로 전송
+          if (newContacts.isNotEmpty) {
+            await _sendContactsToBackend(newContacts);
+          } else {
+            print("새로운 연락처가 없습니다.");
           }
         }
-        _filteredContacts = _contacts;
-      });
-
-      // 서버로 연락처 데이터를 전송, 어셈블할때 주석 해제
-      // await _sendContactsToBackend();
-
-    } else {
-      print('Failed to load user profile');
+      }
+    } catch (e) {
+      print("연락처를 불러오는 중 오류 발생: $e");
     }
   }
 
-  Future<void> _sendContactsToBackend() async {
-    final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo?';
+  // 서버로 로컬 연락처를 전송하는 함수 (중복 제거 후 새로운 연락처만 전송)
+  Future<void> _sendContactsToBackend(List<Contact> contacts) async {
+    final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo';
     final Map<String, List<Map<String, dynamic>>> dataToSend = {
-      userPhoneNumber: _contacts.map((contact) {
+      userPhoneNumber: contacts.map((contact) {
         return {
-          'name': contact['name'],
-          'phoneNumber': contact['phone'],
-          'isCurtainCallOnAndOff': contact['isCurtainCallOnAndOff'] ?? false,
+          'name': contact.displayName,
+          'phoneNumber': contact.phones.isNotEmpty ? contact.phones.first.number : "",
+          'isCurtainCallOnAndOff': false, // 기본값 설정
         };
-      }).toList()
+      }).toList(),
     };
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode(dataToSend),
       );
 
-      // if (response.statusCode == 200) {
-      //   print("연락처 데이터 전송 성공");
-      // } else {
-      //   print("연락처 데이터 전송 실패: ${response.statusCode}");
-      // }
-    } catch (e) {
-      print("서버로 데이터 전송 중 오류 발생: $e");
-    }
-  }
-
-  Future<void> _deleteContactName(String phoneNumber) async {
-    try {
-      if (await Permission.contacts.request().isGranted) {
-        // 연락처를 가져옵니다.
-        final contacts = await FlutterContacts.getContacts(withProperties: true);
-        for (var contact in contacts) {
-          if (contact.phones.isNotEmpty && contact.phones.first.number.replaceAll('-', '') == phoneNumber) {
-            // 연락처 이름을 삭제합니다.
-            contact.name.first = '';
-            contact.name.last = '';
-            await contact.update();
-            print('연락처의 이름이 삭제되었습니다.');
-            break;
-          }
-        }
+      if (response.statusCode == 200) {
+        print("로컬 연락처를 서버로 전송 완료");
+      } else {
+        print("연락처 전송 실패: ${response.statusCode}");
       }
-    } on PlatformException catch (e) {
-      print('Failed to delete contact: ${e.message}');
+    } catch (e) {
+      print("서버로 연락처 전송 중 오류 발생: $e");
     }
   }
 
-  Future<void> _savePhoneBookProfileWithConnection(String prePhoneNumber, String newPhoneNumber) async {
-    // 수정할 연락처 데이터를 JSON 형식으로 구성합니다.
-    Map<String, dynamic> updatedContact = {
-      "name": _nameControllers[prePhoneNumber]!.text,
-      "phoneNumber": newPhoneNumber,
-      "isCurtainCallOnAndOff": _switchStates[prePhoneNumber]
-    };
-
-    // 서버로 데이터를 PUT 요청으로 전송합니다.
-    final response = await http.put(
-      Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?prePhoneNumber=$prePhoneNumber'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        userPhoneNumber: updatedContact,
-      }),
+  // 서버에서 연락처 정보 가져오기 (백엔드에서 가져와 화면에 표시)
+  Future<void> _fetchContactsFromBackend() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'),
     );
 
     if (response.statusCode == 200) {
-      print('User profile updated successfully');
-    } else {
-      print('Failed to update user profile');
-    }
+      final data = json.decode(response.body);
+      if (data["response"] != null && data["response"][userPhoneNumber] != null) {
+        final List<dynamic> contactList = data["response"][userPhoneNumber];
 
-    // 기존 정보를 새 정보로 업데이트
-    setState(() {
-      if (prePhoneNumber != newPhoneNumber) {
-        _switchStates[newPhoneNumber] = _switchStates.remove(prePhoneNumber)!;
-        _isEditing[newPhoneNumber] = _isEditing.remove(prePhoneNumber)!;
-        _nameControllers[newPhoneNumber] = _nameControllers.remove(prePhoneNumber)!;
-        _phoneControllers[newPhoneNumber] = _phoneControllers.remove(prePhoneNumber)!;
-
-        for (var contact in _contacts) {
-          if (contact["phone"] == prePhoneNumber) {
-            contact["phone"] = newPhoneNumber;
-            break;
+        setState(() {
+          _contacts.clear();
+          for (var contact in contactList) {
+            _contacts.add({
+              "name": contact["name"],
+              "phone": contact["phoneNumber"],
+              "isCurtainCallOnAndOff": contact["isCurtainCallOnAndOff"],
+            });
+            _switchStates[contact["phoneNumber"]] = contact["isCurtainCallOnAndOff"];
+            _nameControllers[contact["phoneNumber"]] = TextEditingController(text: contact["name"]);
+            _phoneControllers[contact["phoneNumber"]] = TextEditingController(text: contact["phoneNumber"]);
           }
+          _filteredContacts = _contacts;
+        });
+      } else {
+        print('해당 전화번호에 대한 연락처 데이터가 없습니다.');
+      }
+    } else {
+      print('Failed to load contacts from backend');
+    }
+  }
+
+  // 로컬 연락처에서 이름 삭제
+  Future<void> _deleteLocalContactName(String phoneNumber) async {
+    try {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true, 
+        withPhoto: true, 
+        withAccounts: true,
+      );
+
+      for (var contact in contacts) {
+        if (contact.phones.isNotEmpty && contact.phones.first.number == phoneNumber) {
+          contact.name.first = '';
+          contact.name.last = '';
+          await contact.update();
+          print('로컬 연락처에서 이름이 삭제되었습니다.');
+          break;
         }
       }
-    });
+    } catch (e) {
+      print("로컬 연락처 이름 삭제 중 오류 발생: $e");
+    }
   }
 
-  void _filterContacts(String searchText) {
-    setState(() {
-      _searchText = searchText;
-      _filteredContacts = _contacts.where((contact) {
-        final name = contact['name']!.toLowerCase();
-        final phone = contact['phone']!.replaceAll('-', '').toLowerCase();
-        return name.contains(searchText.toLowerCase()) || phone.contains(searchText);
-      }).toList();
-    });
+  // 서버에서 이름 복원
+  void _restoreContactNameFromBackend(String phoneNumber) async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo?phoneNumber=$userPhoneNumber'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print("백엔드로부터 가져온 데이터: $data");
+
+        if (data != null && data["response"] != null) {
+          final List<dynamic> contactList = data["response"][userPhoneNumber];
+          for (var contact in contactList) {
+            if (contact["phoneNumber"] == phoneNumber) {
+              final restoredName = contact["name"];
+
+              setState(() {
+                _nameControllers[phoneNumber]?.text = restoredName;
+              });
+
+              final contacts = await FlutterContacts.getContacts(
+                withProperties: true,
+                withAccounts: true, 
+                withPhoto: true,
+              );
+              for (var contact in contacts) {
+                if (contact.phones.isNotEmpty && contact.phones.first.number == phoneNumber) {
+                  contact.name.first = restoredName;
+                  await contact.update();
+                  print('로컬 연락처 이름 복원 완료');
+                  break;
+                }
+              }
+              return;
+            }
+          }
+          print('백엔드에서 해당 전화번호에 대한 이름을 찾을 수 없습니다.');
+        } else {
+          print('백엔드에서 연락처 목록을 찾을 수 없습니다.');
+        }
+      } else {
+        print('Failed to restore contact name from backend.');
+      }
+    } catch (e) {
+      print('이름 복원 중 오류 발생: $e');
+    }
   }
 
+  // isCurtainCallOnAndOff가 true/false로 변경될 때 호출되는 함수
   void _toggleSwitch(String phoneNumber, bool value) {
     setState(() {
       _switchStates[phoneNumber] = value;
-      _savePhoneBookProfileWithConnection(phoneNumber, phoneNumber); // 스위치 상태 변경 시 API 호출
+
+      if (value) {
+        _deleteLocalContactName(phoneNumber);
+      } else {
+        _restoreContactNameFromBackend(phoneNumber);
+      }
+
+      _updateCurtainCallStatusInBackend(phoneNumber, value);
     });
   }
 
+  // 연락처 편집 모드 활성화/비활성화
   void _toggleEditMode(String phoneNumber) {
     setState(() {
+      if (!_isEditing.containsKey(phoneNumber)) {
+        _isEditing[phoneNumber] = false;
+      }
       _isEditing[phoneNumber] = !_isEditing[phoneNumber]!;
     });
   }
 
-  void _saveEditedContact(String phoneNumber) {
-    setState(() {
-      final name = _nameControllers[phoneNumber]!.text;
-      final newPhoneNumber = _phoneControllers[phoneNumber]!.text;
+  // 편집된 연락처 저장 (DB로 업데이트)
+  Future<void> _saveEditedContact(String phoneNumber) async {
+    final nameController = _nameControllers[phoneNumber];
+    final phoneController = _phoneControllers[phoneNumber];
 
-      for (var contact in _contacts) {
-        if (contact['phone'] == phoneNumber) {
-          contact['name'] = name;
-          contact['phone'] = newPhoneNumber;
-          break;
-        }
-      }
+    if (nameController == null || phoneController == null) {
+      print('Error: nameController 또는 phoneController가 존재하지 않음.');
+      return;
+    }
 
-      if (newPhoneNumber != phoneNumber) {
-        // 기존 전화번호를 새 전화번호로 업데이트
-        _savePhoneBookProfileWithConnection(phoneNumber, newPhoneNumber);
+    final updatedContact = {
+      'name': nameController.text,
+      'phoneNumber': phoneController.text,
+      'isCurtainCallOnAndOff': _switchStates[phoneNumber] ?? false,
+    };
+
+    final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo';
+
+    try {
+      final response = await http.put(
+        Uri.parse('$url?prePhoneNumber=$phoneNumber'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          userPhoneNumber: updatedContact,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('연락처 정보 업데이트 성공');
       } else {
-        _savePhoneBookProfileWithConnection(phoneNumber, phoneNumber);
+        print('연락처 정보 업데이트 실패: ${response.statusCode}');
       }
 
-      _toggleEditMode(phoneNumber);
-      _filteredContacts = _contacts;
-    });
+      setState(() {
+        for (var contact in _contacts) {
+          if (contact['phone'] == phoneNumber) {
+            contact['name'] = nameController.text;
+            contact['phone'] = phoneController.text;
+            break;
+          }
+        }
+        _filteredContacts = _contacts;
+        _toggleEditMode(phoneNumber); 
+      });
+    } catch (e) {
+      print('연락처 정보 업데이트 중 오류 발생: $e');
+    }
+  }
+
+  // 서버로 isCurtainCallOnAndOff 상태만 업데이트
+  Future<void> _updateCurtainCallStatusInBackend(String phoneNumber, bool isOn) async {
+    final userPhoneBookNumber = phoneNumber;
+    final url = 'http://10.0.2.2:8080/main/user/setOff?userPhoneNumber=$userPhoneNumber&userPhoneBookNumber=$userPhoneBookNumber';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        print("isCurtainCallOnAndOff 상태 업데이트 성공");
+      } else {
+        print("isCurtainCallOnAndOff 상태 업데이트 실패");
+      }
+    } catch (e) {
+      print("서버로 상태 업데이트 중 오류 발생: $e");
+    }
   }
 
   @override
@@ -298,7 +399,13 @@ class _ContactsPageState extends State<ContactsPage> {
                 ),
               ),
               onChanged: (value) {
-                _filterContacts(value);
+                setState(() {
+                  _filteredContacts = _contacts.where((contact) {
+                    final name = contact['name']!.toLowerCase();
+                    final phone = contact['phone']!.replaceAll('-', '').toLowerCase();
+                    return name.contains(value.toLowerCase()) || phone.contains(value);
+                  }).toList();
+                });
               },
             ),
           ),
@@ -330,68 +437,44 @@ class _ContactsPageState extends State<ContactsPage> {
                     final contact = _filteredContacts[index];
                     final phoneNumber = contact['phone']!;
                     final isSwitched = _switchStates[phoneNumber] ?? false;
-                    final isEditing = _isEditing[phoneNumber] ?? false;
 
                     return ListTile(
-                      title: isEditing
-                          ? ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: screenSize.width * 0.5,
-                        ),
-                        child: TextField(
-                          controller: _nameControllers[phoneNumber],
-                          decoration: const InputDecoration(
-                            hintText: '이름을 입력하세요',
-                          ),
-                          maxLines: 1,
-                          style: const TextStyle(overflow: TextOverflow.ellipsis),
-                        ),
-                      )
+                      title: _isEditing[phoneNumber] == true
+                          ? TextField(
+                              controller: _nameControllers[phoneNumber],
+                              decoration: const InputDecoration(
+                                hintText: '이름을 입력하세요',
+                              ),
+                            )
                           : Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
-                      subtitle: isEditing
-                          ? ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: screenSize.width * 0.5,
-                        ),
-                        child: TextField(
-                          controller: _phoneControllers[phoneNumber],
-                          decoration: const InputDecoration(
-                            hintText: '전화번호를 입력하세요',
-                          ),
-                          maxLines: 1,
-                          style: const TextStyle(overflow: TextOverflow.ellipsis),
-                          keyboardType: TextInputType.phone,
-                        ),
-                      )
+                      subtitle: _isEditing[phoneNumber] == true
+                          ? TextField(
+                              controller: _phoneControllers[phoneNumber],
+                              decoration: const InputDecoration(
+                                hintText: '전화번호를 입력하세요',
+                              ),
+                            )
                           : Text(
-                        phoneNumber,
-                        style: TextStyle(
-                          fontSize: fontSize,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        maxLines: 1,
-                      ),
-                      leading: Icon(Icons.person, size: listIconSize),
+                              phoneNumber,
+                              style: TextStyle(fontSize: fontSize),
+                            ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Transform.scale(
-                            scale: 0.75,
-                            child: Switch(
-                              value: isSwitched,
-                              onChanged: (value) {
-                                _toggleSwitch(phoneNumber, value);
-                              },
-                            ),
-                          ),
                           IconButton(
-                            icon: Icon(isEditing ? Icons.save : Icons.edit),
+                            icon: Icon(_isEditing[phoneNumber] == true ? Icons.save : Icons.edit),
                             onPressed: () {
-                              if (isEditing) {
+                              if (_isEditing[phoneNumber] == true) {
                                 _saveEditedContact(phoneNumber);
                               } else {
                                 _toggleEditMode(phoneNumber);
                               }
+                            },
+                          ),
+                          Switch(
+                            value: _switchStates[phoneNumber] ?? false,
+                            onChanged: (value) {
+                              _toggleSwitch(phoneNumber, value);
                             },
                           ),
                         ],

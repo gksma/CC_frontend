@@ -1,11 +1,11 @@
 import 'dart:io';
-
 import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_contacts/flutter_contacts.dart'; // 로컬 연락처 관리
 
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 
@@ -34,9 +34,11 @@ class _SettingsPageState extends State<SettingsPage> {
       _isCurtainCallOn = prefs.getBool('isCurtainCallOn') ?? false;
     });
   }
+
   Future<String> _getNativeFilePath() async {
     return '/data/data/com.example.curtaincall/files';
   }
+
   Future<String?> _getStoredPhoneNumber() async {
     try {
       final nativeDirectory = await _getNativeFilePath();
@@ -44,10 +46,8 @@ class _SettingsPageState extends State<SettingsPage> {
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
         final phoneNumber = await file.readAsString();
-        print('저장된 전화번호: $phoneNumber');
         return phoneNumber;
       } else {
-        print("전화번호가 저장된 파일이 없습니다. 경로: ${file.path}");
         return null;
       }
     } catch (e) {
@@ -58,11 +58,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _fetchUserProfileWithConnection() async {
     String? userPhoneNumber = await _getStoredPhoneNumber();
-    userPhoneNumber=toUrlNumber(userPhoneNumber!);
+    userPhoneNumber = toUrlNumber(userPhoneNumber!);
     final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user?phoneNumber=$userPhoneNumber'));
-
-    print(response);
-
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -81,53 +78,50 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setBool('isCurtainCallOn', value);
   }
 
- Future<void> _setAllContactsOn() async {
-  try {
-    final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/main/user/setAllOn?phoneNumber=$_userPhone'),
-    );
+  // **커튼콜 전체 ON**: 모든 연락처 이름 삭제
+  Future<void> _setAllContactsOn() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8080/main/user/setAllOn?phoneNumber=$_userPhone'),
+      );
 
-    if (response.statusCode == 200) {
-      final String message = response.body; // 메시지 자체가 본문으로 들어옴
-
-      setState(() {
-        // 모든 연락처가 CurtainCall ON 상태로 설정됨
-        _isCurtainCallOn = true;
+      if (response.statusCode == 200) {
+        await _deleteAllLocalContactNames(); // 모든 로컬 연락처에서 이름 삭제
+        setState(() {
+          _isCurtainCallOn = true;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+          const SnackBar(content: Text('모든 연락처가 커튼콜 ON으로 설정되었습니다.')),
         );
-      });
-    } else {
-      print('Failed to set all contacts ON');
+      } else {
+        print('Failed to set all contacts ON');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('커튼콜 기능 활성화에 실패했습니다.')),
+        );
+      }
+    } catch (error) {
+      print('Error: $error');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('커튼콜 기능 활성화에 실패했습니다.')),
+        const SnackBar(content: Text('서버와의 연결에 문제가 발생했습니다.')),
       );
     }
-  } catch (error) {
-    print('Error: $error');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('서버와의 연결에 문제가 발생했습니다.')),
-    );
   }
-}
 
-
-
+  // **연락처 원상복구 (전체 OFF)**: 모든 연락처 복구
   Future<void> _rollbackUserData() async {
     final response = await http.get(Uri.parse('http://10.0.2.2:8080/main/user/rollback?phoneNumber=$_userPhone'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-
       final List<dynamic> restoredContacts = data['response'][_userPhone];
 
-      // 복구된 데이터 처리 로직
+      await _restoreAllLocalContactNames(restoredContacts); // 로컬 연락처에 복구된 이름들 반영
       setState(() {
-        _isCurtainCallOn = false; // 복구 후 CurtainCall은 기본적으로 OFF 상태로 설정
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('연락처 정보가 성공적으로 복구되었습니다.')),
-        );
+        _isCurtainCallOn = false;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('연락처 정보가 성공적으로 복구되었습니다.')),
+      );
     } else {
       print('Failed to rollback user data');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,6 +130,53 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  // **모든 로컬 연락처의 이름을 삭제하는 함수**
+  Future<void> _deleteAllLocalContactNames() async {
+    try {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withAccounts: true,
+        withPhoto: true,  // 사진 정보도 가져오도록 설정
+      );
+
+      for (var contact in contacts) {
+        if (contact.phones.isNotEmpty) {
+          contact.name.first = '';
+          contact.name.last = '';
+          await contact.update();
+        }
+      }
+      print('모든 로컬 연락처 이름 삭제 완료');
+    } catch (e) {
+      print('모든 로컬 연락처 이름 삭제 중 오류 발생: $e');
+    }
+  }
+
+  // **모든 로컬 연락처의 이름을 복구하는 함수**
+  Future<void> _restoreAllLocalContactNames(List<dynamic> restoredContacts) async {
+    try {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withAccounts: true,
+        withPhoto: true,  // 사진 정보도 가져오도록 설정
+      );
+
+      for (var restoredContact in restoredContacts) {
+        for (var contact in contacts) {
+          if (contact.phones.isNotEmpty && contact.phones.first.number == restoredContact['phoneNumber']) {
+            contact.name.first = restoredContact['name'];
+            contact.name.last = '';
+            await contact.update();
+          }
+        }
+      }
+      print('모든 로컬 연락처 이름 복구 완료');
+    } catch (e) {
+      print('모든 로컬 연락처 이름 복구 중 오류 발생: $e');
+    }
+  }
+
+  // 커튼콜 ON/OFF 알림 다이얼로그
   void _showConfirmationDialogForOn() {
     showDialog(
       context: context,
@@ -148,13 +189,13 @@ class _SettingsPageState extends State<SettingsPage> {
             TextButton(
               child: const Text('아니오'),
               onPressed: () {
-                Navigator.of(context).pop(); // 다이얼로그 닫기
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: const Text('예'),
               onPressed: () async {
-                Navigator.of(context).pop(); // 다이얼로그 닫기
+                Navigator.of(context).pop();
                 await _setAllContactsOn(); // 모든 연락처 활성화
               },
             ),
@@ -176,13 +217,13 @@ class _SettingsPageState extends State<SettingsPage> {
             TextButton(
               child: const Text('아니오'),
               onPressed: () {
-                Navigator.of(context).pop(); // 다이얼로그 닫기
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: const Text('예'),
               onPressed: () async {
-                Navigator.of(context).pop(); // 다이얼로그 닫기
+                Navigator.of(context).pop();
                 await _rollbackUserData(); // 사용자 데이터 롤백
               },
             ),
