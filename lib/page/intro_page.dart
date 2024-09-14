@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:curtaincall/page/utill.dart';
@@ -23,14 +24,33 @@ class _IntroPageState extends State<IntroPage> {
 
   bool _showVerificationField = false;
   bool _isLoading = false;
-  bool _isUser = false; // 사용자인지 여부를 나타내는 변수
+  bool _isUser = false;
+  int _remainingTime = 0; // 남은 시간(초)
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // 비동기 처리를 마친 후에 로직을 수행하도록 설정
     Future.microtask(() {
       _checkIfUser();
+    });
+  }
+
+  // 카운트다운 시작 함수
+  void _startCountdown() {
+    setState(() {
+      _remainingTime = 180; // 3분 = 180초
+    });
+
+    _timer?.cancel(); // 기존 타이머가 있으면 취소
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_remainingTime > 0) {
+        setState(() {
+          _remainingTime--;
+        });
+      } else {
+        _timer?.cancel();
+      }
     });
   }
 
@@ -63,6 +83,7 @@ class _IntroPageState extends State<IntroPage> {
 
       final response = await http.get(url);
 
+      print(response);
       if (response.statusCode == 200) {
         if (response.body == 'true') {
           setState(() {
@@ -126,6 +147,38 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
+  // 사용자 이름을 네이티브 파일 시스템에 저장
+  Future<void> _saveUserNameToFile(String userName) async {
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'user_name.txt'));
+      await file.writeAsString(userName);
+      print("사용자 이름이 파일에 저장되었습니다. 경로: ${file.path}");
+    } catch (e) {
+      print("파일 저장 오류: $e");
+    }
+  }
+
+  // 저장된 사용자 이름 가져오기
+  Future<String?> _getStoredUserName() async {
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'user_name.txt'));
+      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
+      if (await file.exists()) {
+        final userName = await file.readAsString();
+        print('저장된 사용자 이름: $userName');
+        return userName;
+      } else {
+        print("사용자 이름이 저장된 파일이 없습니다. 경로: ${file.path}");
+        return null;
+      }
+    } catch (e) {
+      print("파일 읽기 오류: $e");
+      return null;
+    }
+  }
+
   // 전화번호 네이티브 파일 시스템에 저장
   Future<void> _savePhoneNumberToFile(String phoneNumber) async {
     try {
@@ -138,7 +191,7 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 전화번호로 인증번호 발송 API 호출
+  // 전화번호로 인증번호 발송 API 호출 및 카운트다운 시작
   Future<void> _sendVerificationCode(String phoneNumber) async {
     final url = Uri.parse('http://10.0.2.2:8080/authorization/send-one?phoneNumber=$phoneNumber');
     setState(() {
@@ -158,6 +211,7 @@ class _IntroPageState extends State<IntroPage> {
         setState(() {
           _showVerificationField = true;
         });
+        _startCountdown(); // 카운트다운 시작
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -192,7 +246,7 @@ class _IntroPageState extends State<IntroPage> {
 
       if (response.statusCode == 200 && response.body == "true") {
         // 인증에 성공한 경우 사용자 정보 저장
-        await _saveUserInfo();
+        await _saveUserInfo(); // 이름과 isCurtainCall을 포함해 사용자 정보 저장
         // 전화번호부 정보 저장
         await _savePhoneBookInfo();
 
@@ -240,17 +294,38 @@ class _IntroPageState extends State<IntroPage> {
       },
       body: json.encode({
         "phoneNumber": _phoneController.text,
-        "nickName": _nameController.text,
-        "isCurtainCall": false
+        "nickName": _nameController.text,  // 사용자 이름 (닉네임)
+        "isCurtainCall": false // isCurtainCall 상태도 전달
       }),
     );
 
     if (response.statusCode == 200) {
+      // 전화번호 뿐만 아니라 이름도 파일에 저장
+      await _saveUserNameToFile(_nameController.text);
       print('User information saved successfully');
     } else {
       print('Failed to save user information');
     }
   }
+
+  // 인증번호 재발급 함수
+  void _resendVerificationCode() {
+    _sendVerificationCode(_phoneController.text);
+  }
+
+  // 카운트다운을 시간 형식으로 변환
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int remainingSeconds = seconds % 60;
+    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // 타이머가 있을 경우 해제
+    super.dispose();
+  }
+
 
   // 전화번호부 정보를 저장하는 API 호출 (로컬 연락처 가져오기)
   Future<void> _savePhoneBookInfo() async {
@@ -470,6 +545,15 @@ class _IntroPageState extends State<IntroPage> {
                                           keyboardType: TextInputType.number,
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
+                                      // 인증번호 입력칸 오른쪽에 카운트다운 표시
+                                      if (_remainingTime > 0)
+                                        Text(
+                                          _formatTime(_remainingTime),
+                                          style: TextStyle(
+                                              fontSize: fontSize,
+                                              color: Colors.red),
+                                        ),
                                     ],
                                   ),
                                   const SizedBox(height: 8.0),
@@ -480,6 +564,17 @@ class _IntroPageState extends State<IntroPage> {
                       ),
                     ),
                     SizedBox(height: padding), // 아래쪽 여백 추가
+                    // 재인증 버튼 먼저
+                    if (_showVerificationField)
+                      SizedBox(
+                        width: double.infinity,
+                        height: buttonHeight,
+                        child: ElevatedButton(
+                          onPressed: _resendVerificationCode,
+                          child: Text('재인증', style: TextStyle(fontSize: fontSize)),
+                        ),
+                      ),
+                    SizedBox(height: padding), // 여백 추가
                     SizedBox(
                       width: double.infinity,
                       height: buttonHeight,

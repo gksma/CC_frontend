@@ -24,9 +24,40 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _loadStoredUserName(); // 저장된 사용자 이름 불러오기
     _loadCurtainCallState();
     _fetchUserProfileWithConnection();
   }
+
+  // 저장된 사용자 이름 불러오는 함수
+  Future<void> _loadStoredUserName() async {
+    String? storedName = await _getStoredUserName(); // 저장된 이름 가져오기
+    if (storedName != null) {
+      setState(() {
+        _userName = storedName; // _userName에 저장된 이름을 설정
+      });
+    }
+  }
+
+  // 저장된 사용자 이름 가져오기
+  Future<String?> _getStoredUserName() async {
+    try {
+      final nativeDirectory = await _getNativeFilePath();
+      final file = File(path.join(nativeDirectory, 'user_name.txt'));
+      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
+      if (await file.exists()) {
+        final userName = await file.readAsString();
+        print('저장된 사용자 이름: $userName');
+        return userName;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print("파일 읽기 오류: $e");
+      return null;
+    }
+  }
+
 
   Future<void> _loadCurtainCallState() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
