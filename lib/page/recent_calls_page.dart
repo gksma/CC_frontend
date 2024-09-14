@@ -49,7 +49,7 @@ class RecentCallsPage extends StatelessWidget {
       Iterable<CallLogEntry> localCallLogs = await CallLog.get();
       List<CallRecordData> callRecords = localCallLogs.map((log) {
         // 날짜를 밀리초에서 DateTime 형식으로 변환
-        String callDate = DateTime.fromMillisecondsSinceEpoch(log.timestamp ?? 0).toString();
+        String callDate = DateTime.fromMillisecondsSinceEpoch(log.timestamp ?? 0).toString().split('.').first;
         bool isMissedCall = log.callType == CallType.missed;
 
         return CallRecordData(
