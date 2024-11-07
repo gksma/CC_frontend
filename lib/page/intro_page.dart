@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
-import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'token_util.dart';
 
 import 'keypad_page.dart';
 
@@ -61,13 +60,13 @@ class _IntroPageState extends State<IntroPage> {
     });
 
     try {
-      // 파일 시스템에서 저장된 전화번호 가져오기
-      String? phoneNumber = await _getStoredPhoneNumber();
+      // 로컬 파일 시스템에서 Bearer 토큰 가져오기
+      String? bearerToken = await getBearerTokenFromFile();
 
-      if (phoneNumber == null || phoneNumber.isEmpty) {
+      if (bearerToken == null || bearerToken.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('저장된 전화번호가 없습니다.'),
+            content: Text('저장된 토큰이 없습니다. 로그인하세요.'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -77,15 +76,19 @@ class _IntroPageState extends State<IntroPage> {
         return;
       }
 
+      final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': bearerToken,
+          'Content-Type': 'application/json',
+        },
+      );
 
-      phoneNumber=toUrlNumber(phoneNumber);
-      final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser?phoneNumber=$phoneNumber');
-
-      final response = await http.get(url);
-
-      print(response);
       if (response.statusCode == 200) {
-        if (response.body == 'true') {
+        final responseBody = json.decode(response.body);
+        print(responseBody);
+        if (responseBody == true) {
           setState(() {
             _isUser = true;
           });
@@ -122,15 +125,10 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // Android의 기본 파일 경로 사용
-  Future<String> _getNativeFilePath() async {
-    return '/data/data/com.example.curtaincall/files';
-  }
-
   // 네이티브 파일 시스템에서 저장된 전화번호 가져오기
   Future<String?> _getStoredPhoneNumber() async {
     try {
-      final nativeDirectory = await _getNativeFilePath();
+      final nativeDirectory = await getNativeFilePath();
       final file = File(path.join(nativeDirectory, 'phone_number.txt'));
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
@@ -150,7 +148,7 @@ class _IntroPageState extends State<IntroPage> {
   // 사용자 이름을 네이티브 파일 시스템에 저장
   Future<void> _saveUserNameToFile(String userName) async {
     try {
-      final nativeDirectory = await _getNativeFilePath();
+      final nativeDirectory = await getNativeFilePath();
       final file = File(path.join(nativeDirectory, 'user_name.txt'));
       await file.writeAsString(userName);
       print("사용자 이름이 파일에 저장되었습니다. 경로: ${file.path}");
@@ -162,7 +160,7 @@ class _IntroPageState extends State<IntroPage> {
   // 저장된 사용자 이름 가져오기
   Future<String?> _getStoredUserName() async {
     try {
-      final nativeDirectory = await _getNativeFilePath();
+      final nativeDirectory = await getNativeFilePath();
       final file = File(path.join(nativeDirectory, 'user_name.txt'));
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
@@ -182,7 +180,7 @@ class _IntroPageState extends State<IntroPage> {
   // 전화번호 네이티브 파일 시스템에 저장
   Future<void> _savePhoneNumberToFile(String phoneNumber) async {
     try {
-      final nativeDirectory = await _getNativeFilePath();
+      final nativeDirectory = await getNativeFilePath();
       final file = File(path.join(nativeDirectory, 'phone_number.txt'));
       await file.writeAsString(phoneNumber);
       print("전화번호가 파일에 저장되었습니다. 경로: ${file.path}");
@@ -191,41 +189,41 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 전화번호로 인증번호 발송 API 호출 및 카운트다운 시작
+  // 2. 인증번호 발송 함수 수정
   Future<void> _sendVerificationCode(String phoneNumber) async {
-    final url = Uri.parse('http://10.0.2.2:8080/authorization/send-one?phoneNumber=$phoneNumber');
+    final url = Uri.parse('http://10.0.2.2:8080/authorization/send-one');
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final response = await http.get(url);
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "phoneNumber": phoneNumber,
+        }),
+      );
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인증번호가 전송되었습니다.'),
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('인증번호가 전송되었습니다.')),
         );
         setState(() {
           _showVerificationField = true;
         });
-        _startCountdown(); // 카운트다운 시작
+        _startCountdown();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인증번호 전송에 실패했습니다. 다시 시도해주세요.'),
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('인증번호 전송에 실패했습니다. 다시 시도해주세요.')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('네트워크 오류가 발생했습니다.'),
-          duration: Duration(seconds: 2),
-        ),
+        const SnackBar(content: Text('네트워크 오류가 발생했습니다.')),
       );
     } finally {
       setState(() {
@@ -234,48 +232,44 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 인증번호 확인 API 호출
+  // 3. 인증번호 확인 함수 수정
   Future<void> _verifyCode(String phoneNumber, String verificationCode) async {
-    final url = Uri.parse('http://10.0.2.2:8080/authorization/configNumber?phoneNumber=$phoneNumber&configNumber=$verificationCode');
+    final url = Uri.parse('http://10.0.2.2:8080/authorization/configNumber?configNumber=$verificationCode');
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final response = await http.get(url);
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "phoneNumber": phoneNumber,
+        }),
+      );
 
       if (response.statusCode == 200 && response.body == "true") {
-        // 인증에 성공한 경우 사용자 정보 저장
-        await _saveUserInfo(); // 이름과 isCurtainCall을 포함해 사용자 정보 저장
-        // 전화번호부 정보 저장
+        await _saveUserInfo();
         await _savePhoneBookInfo();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인증이 완료되었습니다.'),
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('인증이 완료되었습니다.')),
         );
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const KeypadPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const KeypadPage()),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인증번호가 일치하지 않습니다.'),
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('인증번호가 일치하지 않습니다.')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('네트워크 오류가 발생했습니다.'),
-          duration: Duration(seconds: 2),
-        ),
+        const SnackBar(content: Text('네트워크 오류가 발생했습니다.')),
       );
     } finally {
       setState(() {
@@ -284,29 +278,57 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 사용자 정보를 저장하는 API 호출
   Future<void> _saveUserInfo() async {
     final url = Uri.parse('http://10.0.2.2:8080/main/user');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        "phoneNumber": _phoneController.text,
-        "nickName": _nameController.text,  // 사용자 이름 (닉네임)
-        "isCurtainCall": false // isCurtainCall 상태도 전달
-      }),
-    );
 
-    if (response.statusCode == 200) {
-      // 전화번호 뿐만 아니라 이름도 파일에 저장
-      await _saveUserNameToFile(_nameController.text);
-      print('User information saved successfully');
-    } else {
-      print('Failed to save user information');
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "phoneNumber": _phoneController.text,
+          "nickName": _nameController.text,
+          "isCurtainCall": false,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final token = response.headers['Authorization'];
+        if (token != null) {
+          await saveBearerTokenToFile(token); // Bearer 토큰을 파일에 저장
+          await _saveUserNameToFile(_nameController.text);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('사용자 정보가 성공적으로 저장되었습니다.')),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const KeypadPage()),
+          );
+        } else {
+          print('Authorization 헤더에 토큰이 없습니다.');
+        }
+      } else {
+        print('Failed to save user information. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('네트워크 오류가 발생했습니다.')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+
 
   // 인증번호 재발급 함수
   void _resendVerificationCode() {
@@ -322,9 +344,13 @@ class _IntroPageState extends State<IntroPage> {
 
   @override
   void dispose() {
-    _timer?.cancel(); // 타이머가 있을 경우 해제
+    // 타이머가 활성화되어 있다면 취소
+    if (_timer != null && _timer!.isActive) {
+      _timer!.cancel();
+    }
     super.dispose();
   }
+
 
 
   // 전화번호부 정보를 저장하는 API 호출 (로컬 연락처 가져오기)
