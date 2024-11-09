@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart'; // 추가된 import
 import 'package:http/http.dart' as http;
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'token_util.dart';
@@ -42,7 +43,7 @@ class _IntroPageState extends State<IntroPage> {
     });
 
     _timer?.cancel(); // 기존 타이머가 있으면 취소
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingTime > 0) {
         setState(() {
           _remainingTime--;
@@ -87,7 +88,6 @@ class _IntroPageState extends State<IntroPage> {
 
       if (response.statusCode == 200) {
         final responseBody = json.decode(response.body);
-        print(responseBody);
         if (responseBody == true) {
           setState(() {
             _isUser = true;
@@ -125,31 +125,11 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 네이티브 파일 시스템에서 저장된 전화번호 가져오기
-  Future<String?> _getStoredPhoneNumber() async {
-    try {
-      final nativeDirectory = await getNativeFilePath();
-      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
-      // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
-      if (await file.exists()) {
-        final phoneNumber = await file.readAsString();
-        print('저장된 전화번호: $phoneNumber');
-        return phoneNumber;
-      } else {
-        print("전화번호가 저장된 파일이 없습니다. 경로: ${file.path}");
-        return null;
-      }
-    } catch (e) {
-      print("파일 읽기 오류: $e");
-      return null;
-    }
-  }
-
-  // 사용자 이름을 네이티브 파일 시스템에 저장
+  // 사용자 이름을 내부 저장소에 저장
   Future<void> _saveUserNameToFile(String userName) async {
     try {
-      final nativeDirectory = await getNativeFilePath();
-      final file = File(path.join(nativeDirectory, 'user_name.txt'));
+      final directory = await getApplicationDocumentsDirectory(); // 경로 수정
+      final file = File(path.join(directory.path, 'user_name.txt'));
       await file.writeAsString(userName);
       print("사용자 이름이 파일에 저장되었습니다. 경로: ${file.path}");
     } catch (e) {
@@ -160,8 +140,8 @@ class _IntroPageState extends State<IntroPage> {
   // 저장된 사용자 이름 가져오기
   Future<String?> _getStoredUserName() async {
     try {
-      final nativeDirectory = await getNativeFilePath();
-      final file = File(path.join(nativeDirectory, 'user_name.txt'));
+      final directory = await getApplicationDocumentsDirectory(); // 경로 수정
+      final file = File(path.join(directory.path, 'user_name.txt'));
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
         final userName = await file.readAsString();
@@ -177,19 +157,7 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 전화번호 네이티브 파일 시스템에 저장
-  Future<void> _savePhoneNumberToFile(String phoneNumber) async {
-    try {
-      final nativeDirectory = await getNativeFilePath();
-      final file = File(path.join(nativeDirectory, 'phone_number.txt'));
-      await file.writeAsString(phoneNumber);
-      print("전화번호가 파일에 저장되었습니다. 경로: ${file.path}");
-    } catch (e) {
-      print("파일 저장 오류: $e");
-    }
-  }
-
-  // 2. 인증번호 발송 함수 수정
+  // 인증번호 발송 함수
   Future<void> _sendVerificationCode(String phoneNumber) async {
     final url = Uri.parse('http://10.0.2.2:8080/authorization/send-one');
 
@@ -232,7 +200,7 @@ class _IntroPageState extends State<IntroPage> {
     }
   }
 
-  // 3. 인증번호 확인 함수 수정
+  // 인증번호 확인 함수
   Future<void> _verifyCode(String phoneNumber, String verificationCode) async {
     final url = Uri.parse('http://10.0.2.2:8080/authorization/configNumber?configNumber=$verificationCode');
 
@@ -299,10 +267,11 @@ class _IntroPageState extends State<IntroPage> {
       );
 
       if (response.statusCode == 200) {
-        final token = response.headers['Authorization'];
+        final token = response.headers['authorization'];
         if (token != null) {
           await saveBearerTokenToFile(token); // Bearer 토큰을 파일에 저장
           await _saveUserNameToFile(_nameController.text);
+          await savePhoneNumberToFile(_phoneController.text); // 전화번호 저장 추가
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('사용자 정보가 성공적으로 저장되었습니다.')),
@@ -312,7 +281,7 @@ class _IntroPageState extends State<IntroPage> {
             MaterialPageRoute(builder: (context) => const KeypadPage()),
           );
         } else {
-          print('Authorization 헤더에 토큰이 없습니다.');
+          print('authorization 헤더에 토큰이 없습니다.');
         }
       } else {
         print('Failed to save user information. Status code: ${response.statusCode}');
@@ -328,7 +297,6 @@ class _IntroPageState extends State<IntroPage> {
       });
     }
   }
-
 
   // 인증번호 재발급 함수
   void _resendVerificationCode() {
@@ -351,8 +319,6 @@ class _IntroPageState extends State<IntroPage> {
     super.dispose();
   }
 
-
-
   // 전화번호부 정보를 저장하는 API 호출 (로컬 연락처 가져오기)
   Future<void> _savePhoneBookInfo() async {
     final url = Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo');
@@ -366,8 +332,8 @@ class _IntroPageState extends State<IntroPage> {
       final Map<String, List<Map<String, dynamic>>> phoneBookData = {
         _phoneController.text: contacts.map((contact) {
           return {
-            "name": contact.displayName ?? '', // 이름이 없으면 빈 문자열
-            "phoneNumber": contact.phones.isNotEmpty ? contact.phones.first.number : '', // 전화번호가 없으면 빈 문자열
+            "name": contact.displayName, // 이름
+            "phoneNumber": contact.phones.isNotEmpty ? contact.phones.first.number : '', // 전화번호
             "isCurtainCallOnAndOff": false // 기본값 설정
           };
         }).toList()
@@ -484,8 +450,7 @@ class _IntroPageState extends State<IntroPage> {
                         borderRadius: BorderRadius.circular(32),
                       ),
                       child: Container(
-                        padding: EdgeInsets.symmetric(
-                            vertical: padding, horizontal: margin),
+                        padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
@@ -507,8 +472,7 @@ class _IntroPageState extends State<IntroPage> {
                                     controller: _nameController,
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
-                                      contentPadding:
-                                          EdgeInsets.symmetric(vertical: 5),
+                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
                                     ),
                                     style: TextStyle(fontSize: fontSize),
                                   ),
@@ -531,8 +495,7 @@ class _IntroPageState extends State<IntroPage> {
                                     controller: _phoneController,
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
-                                      contentPadding:
-                                          EdgeInsets.symmetric(vertical: 5),
+                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
                                     ),
                                     style: TextStyle(fontSize: fontSize),
                                     keyboardType: TextInputType.phone,
@@ -545,8 +508,7 @@ class _IntroPageState extends State<IntroPage> {
                             if (_showVerificationField)
                               Column(
                                 children: [
-                                  const Divider(
-                                      height: 16.0, thickness: 1),
+                                  const Divider(height: 16.0, thickness: 1),
                                   Row(
                                     children: [
                                       Text(
@@ -559,13 +521,10 @@ class _IntroPageState extends State<IntroPage> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: TextField(
-                                          controller:
-                                              _verificationCodeController,
+                                          controller: _verificationCodeController,
                                           decoration: const InputDecoration(
                                             border: InputBorder.none,
-                                            contentPadding:
-                                                EdgeInsets.symmetric(
-                                                    vertical: 5),
+                                            contentPadding: EdgeInsets.symmetric(vertical: 5),
                                           ),
                                           style: TextStyle(fontSize: fontSize),
                                           keyboardType: TextInputType.number,
@@ -576,9 +535,7 @@ class _IntroPageState extends State<IntroPage> {
                                       if (_remainingTime > 0)
                                         Text(
                                           _formatTime(_remainingTime),
-                                          style: TextStyle(
-                                              fontSize: fontSize,
-                                              color: Colors.red),
+                                          style: TextStyle(fontSize: fontSize, color: Colors.red),
                                         ),
                                     ],
                                   ),
@@ -590,7 +547,7 @@ class _IntroPageState extends State<IntroPage> {
                       ),
                     ),
                     SizedBox(height: padding), // 아래쪽 여백 추가
-                    // 재인증 버튼 먼저
+                    // 재인증 버튼
                     if (_showVerificationField)
                       SizedBox(
                         width: double.infinity,
@@ -607,12 +564,11 @@ class _IntroPageState extends State<IntroPage> {
                       child: ElevatedButton(
                         onPressed: _showVerificationField
                             ? () => _verifyCode(
-                                _phoneController.text,
-                                _verificationCodeController.text,
-                              )
+                                  _phoneController.text,
+                                  _verificationCodeController.text,
+                                )
                             : _saveContact,
-                        child: Text(_showVerificationField ? '확인' : '인증',
-                            style: TextStyle(fontSize: fontSize)),
+                        child: Text(_showVerificationField ? '확인' : '인증', style: TextStyle(fontSize: fontSize)),
                       ),
                     ),
                   ],
