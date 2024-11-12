@@ -16,7 +16,7 @@ class RecentCallsPage extends StatelessWidget {
   // 사용자 전화번호 로드 (연락처 페이지 방식과 동일)
   Future<String?> _getStoredPhoneNumber() async {
     try {
-      final directory = '/data/data/com.example.curtaincall/files';
+      const directory = '/data/data/com.example.curtaincall/files';
       final file = File(path.join(directory, 'phone_number.txt'));
 
       if (await file.exists()) {
@@ -63,7 +63,7 @@ class RecentCallsPage extends StatelessWidget {
       // 서버로 전화번호 리스트 전송
       List<String> phoneNumbers = localCallLogs.map((log) => log.number ?? 'Unknown').toList();
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/main/recentCallHistory?phoneNumber=${userPhoneNumber}'),
+        Uri.parse('http://10.0.2.2:8080/main/recentCallHistory?phoneNumber=$userPhoneNumber'),
         headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode({'phoneNumbers': phoneNumbers}),
       );

@@ -50,8 +50,7 @@ Future<String?> getStoredPhoneNumber() async {
   try {
     final directory = await getApplicationDocumentsDirectory();
     final file = File(path.join(directory.path, 'phone_number.txt'));
-    print(directory);
-    print(file);
+
     if (await file.exists()) {
       final phoneNumber = await file.readAsString();
       print("불러온 전화번호: $phoneNumber");

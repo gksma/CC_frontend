@@ -134,7 +134,6 @@ class _ContactsPageState extends State<ContactsPage> {
         };
       }).toList(),
     };
-    print("씨발: ${dataToSend}");
 
     try {
       // HTTP POST 요청
@@ -245,7 +244,7 @@ class _ContactsPageState extends State<ContactsPage> {
       final response = await http.post(
         url,
         headers: {
-          'Authorization': bearerToken,
+          'authorization': bearerToken,
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -288,9 +287,6 @@ class _ContactsPageState extends State<ContactsPage> {
       print('이름 복원 중 오류 발생: $e');
     }
   }
-
-
-
 
   // isCurtainCallOnAndOff가 true/false로 변경될 때 호출되는 함수
   void _toggleSwitch(String phoneNumber, bool value) {
@@ -344,7 +340,7 @@ class _ContactsPageState extends State<ContactsPage> {
       final response = await http.put(
         Uri.parse(url),
         headers: {
-          'Authorization': bearerToken ?? '', // 이미 "Bearer " 접두사가 포함된 상태
+          'authorization': bearerToken ?? '', // 이미 "Bearer " 접두사가 포함된 상태
           'Content-Type': 'application/json',
         },
         body: json.encode(updatedContact),

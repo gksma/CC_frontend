@@ -81,7 +81,7 @@ class _IntroPageState extends State<IntroPage> {
       final response = await http.get(
         url,
         headers: {
-          'Authorization': bearerToken,
+          'authorization': bearerToken,
           'Content-Type': 'application/json',
         },
       );
