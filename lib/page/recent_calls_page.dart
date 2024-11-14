@@ -1,43 +1,25 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 import 'package:call_log/call_log.dart';
 import 'utill.dart';
-
+import 'token_util.dart';
 import 'common_navigation_bar.dart';
 
 class RecentCallsPage extends StatelessWidget {
   const RecentCallsPage({super.key});
 
-  // 사용자 전화번호 로드 (연락처 페이지 방식과 동일)
-  Future<String?> _getStoredPhoneNumber() async {
-    try {
-      const directory = '/data/data/com.example.curtaincall/files';
-      final file = File(path.join(directory, 'phone_number.txt'));
-
-      if (await file.exists()) {
-        final phoneNumber = await file.readAsString();
-        return phoneNumber;
-      } else {
-        return null;
-      }
-    } catch (e) {
-      return null;
-    }
-  }
+  // 최근 기록을 가져오는 함수
   // 로컬 통화 기록에서 전화번호만 추출하고, 사용자 전화번호와 함께 서버로 요청하여 이름과 번호를 가져오는 함수
   Future<List<CallRecordData>> fetchCallRecords() async {
     try {
-      // 로컬 전화번호 로드
-      String? userPhoneNumber = await _getStoredPhoneNumber();
-      if (userPhoneNumber == null) {
-        throw Exception('User phone number not found');
+      // 로컬에서 JWT Bearer 토큰 로드
+      String? bearerToken = await getBearerTokenFromFile();
+      if (bearerToken == null || bearerToken.isEmpty) {
+        throw Exception('Bearer token not found');
       }
-      userPhoneNumber = toUrlNumber(userPhoneNumber);
 
       // 권한 요청
       var status = await Permission.phone.status;
@@ -47,44 +29,49 @@ class RecentCallsPage extends StatelessWidget {
 
       // 로컬 통화 기록 가져오기
       Iterable<CallLogEntry> localCallLogs = await CallLog.get();
+      List<String> phoneNumbers = localCallLogs.map((log) => log.number ?? 'Unknown').toList();
+
+      // 서버로 전화번호 리스트 전송
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8080/main/recentCallHistory'),
+        headers: {
+          'authorization': bearerToken,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({
+          'phoneNumbers': phoneNumbers.map((number) => number.toString()).toList(),
+        }),
+      );
+
+      // 로컬 통화 기록을 CallRecordData 객체로 변환
       List<CallRecordData> callRecords = localCallLogs.map((log) {
-        // 날짜를 밀리초에서 DateTime 형식으로 변환
         String callDate = DateTime.fromMillisecondsSinceEpoch(log.timestamp ?? 0).toString().split('.').first;
         bool isMissedCall = log.callType == CallType.missed;
 
         return CallRecordData(
-          name: 'Unknown',  // 서버에서 가져오는 이름
+          isMissed: isMissedCall,
+          name: 'Unknown', // 서버에서 받아올 이름
           phoneNumber: log.number ?? 'Unknown',
-          dateTime: callDate, // 날짜 추가
-          isMissed: isMissedCall, // 부재중 여부 추가
+          dateTime: callDate,
         );
       }).toList();
 
-      // 서버로 전화번호 리스트 전송
-      List<String> phoneNumbers = localCallLogs.map((log) => log.number ?? 'Unknown').toList();
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/main/recentCallHistory?phoneNumber=$userPhoneNumber'),
-        headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({'phoneNumbers': phoneNumbers}),
-      );
+      print('Sending phoneNumbers: $phoneNumbers');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(utf8.decode(response.bodyBytes));
+        print('Server Response Data: $jsonData');
 
         if (jsonData['callLogInfos'] != null && jsonData['callLogInfos'] is List) {
-          // 서버에서 반환된 데이터를 로컬 통화 기록과 매칭
-          for (var i = 0; i < callRecords.length; i++) {
-            var serverData = jsonData['callLogInfos'].firstWhere(
-                (data) => data['phoneNumber'] == callRecords[i].phoneNumber,
-                orElse: () => null);
+          // 서버에서 받은 전화번호와 이름을 매핑하여 callRecords의 이름을 업데이트
+          Map<String, String> phoneNameMap = {
+            for (var info in jsonData['callLogInfos'])
+              info['phoneNumber']: (info['nickname'] == 'Unknown!!') ? '' : info['nickname'] // Set blank if "Unknown!!"
+          };
 
-            if (serverData != null) {
-              callRecords[i] = CallRecordData(
-                name: serverData['nickname'] ?? 'Unknown',
-                phoneNumber: callRecords[i].phoneNumber,
-                dateTime: callRecords[i].dateTime, // 로컬에서 추출된 날짜 유지
-                isMissed: callRecords[i].isMissed, // 로컬에서 추출된 부재중 여부 유지
-              );
+          for (var record in callRecords) {
+            if (phoneNameMap.containsKey(record.phoneNumber)) {
+              record.name = phoneNameMap[record.phoneNumber]!;
             }
           }
         }
@@ -97,7 +84,6 @@ class RecentCallsPage extends StatelessWidget {
       throw Exception('Failed to load call logs: ${e.toString()}');
     }
   }
-
 
 
 
@@ -177,7 +163,7 @@ class CallRecord extends StatelessWidget {
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
-    await requestPhonePermission();  // 권한 요청
+    await requestPhonePermission();
     bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
     if (res == null || !res) {
       throw 'Could not make the call to $phoneNumber';
@@ -190,7 +176,7 @@ class CallRecord extends StatelessWidget {
     final double fontSize = screenSize.width * 0.045;
 
     return Card(
-      color: isMissed ? Colors.red[50] : Colors.grey[100], // 부재중 여부에 따른 색상
+      color: isMissed ? Colors.red[50] : Colors.grey[100],
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -206,7 +192,7 @@ class CallRecord extends StatelessWidget {
                   style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: FontWeight.bold,
-                    color: isMissed ? Colors.red : Colors.black, // 부재중이면 빨간색
+                    color: isMissed ? Colors.red : Colors.black,
                   ),
                 ),
                 SizedBox(height: screenSize.height * 0.005),
@@ -219,7 +205,7 @@ class CallRecord extends StatelessWidget {
                 ),
                 SizedBox(height: screenSize.height * 0.005),
                 Text(
-                  dateTime, // 통화 날짜 표시
+                  dateTime,
                   style: TextStyle(
                     fontSize: fontSize * 0.85,
                     color: isMissed ? Colors.red : Colors.black,
@@ -243,7 +229,7 @@ class CallRecord extends StatelessWidget {
 }
 
 class CallRecordData {
-  final String name;
+  String name;
   final String phoneNumber;
   final String dateTime;
   final bool isMissed;

@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:curtaincall/global/user_info.dart';
-import 'package:curtaincall/page/utill.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as path;
@@ -112,6 +110,8 @@ Future<void> _fetchUserProfileWithConnection() async {
   // 전화번호부 커튼콜 전체 on (api 16번)
   Future<void> _setAllContactsOn() async {
     String? bearerToken = await getBearerTokenFromFile();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isCurtainCallOn', true);
 
     if (bearerToken == null || bearerToken.isEmpty) {
       print("Bearer 토큰이 없습니다.");
@@ -130,19 +130,14 @@ Future<void> _fetchUserProfileWithConnection() async {
         final data = response.body;
         if (data == '커튼콜 기능 일괄 활성화 되었습니다') {
           await _deleteAllLocalContactNames(); // 모든 로컬 연락처에서 이름 삭제
-          setState(() {
-            _isCurtainCallOn = true;
-          });
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isCurtainCallOn', true); // 상태 저장
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('모든 연락처가 커튼콜 ON으로 설정되었습니다.')),
           );
         } else {
           print('연락처 설정 오류: ${data}');
         }
-      } else if (response.statusCode == 405) {
-        print('Request Method Error: Method not allowed');
-      } else if (response.statusCode == 500) {
-        print('DB Transaction Error & 서버 내부 에러');
       } else {
         print('Failed to set all contacts ON. Status code: ${response.statusCode}');
       }
@@ -157,6 +152,8 @@ Future<void> _fetchUserProfileWithConnection() async {
   // 전화번호부 커튼콜 전체 off (api 15번)
   Future<void> _rollbackUserData() async {
     String? bearerToken = await getBearerTokenFromFile();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isCurtainCallOn', false);
 
     if (bearerToken == null || bearerToken.isEmpty) {
       print("Bearer 토큰이 없습니다.");
@@ -166,7 +163,7 @@ Future<void> _fetchUserProfileWithConnection() async {
     final response = await http.get(
       Uri.parse('http://10.0.2.2:8080/main/user/rollback'),
       headers: {
-        'authorization': bearerToken, // 소문자로 맞춤
+        'authorization': bearerToken,
       },
     );
 
@@ -175,16 +172,11 @@ Future<void> _fetchUserProfileWithConnection() async {
       final List<dynamic> restoredContacts = data['response'][_userPhone];
 
       await _restoreAllLocalContactNames(restoredContacts); // 로컬 연락처에 복구된 이름들 반영
-      setState(() {
-        _isCurtainCallOn = false;
-      });
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isCurtainCallOn', false); // 상태 저장
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('연락처 정보가 성공적으로 복구되었습니다.')),
       );
-    } else if (response.statusCode == 405) {
-      print('Request Method Error: Method not allowed');
-    } else if (response.statusCode == 500) {
-      print('DB Transaction Error & 서버 내부 에러');
     } else {
       print('Failed to rollback user data. Status code: ${response.statusCode}');
     }

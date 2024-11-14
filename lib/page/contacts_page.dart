@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'common_navigation_bar.dart';
 import 'token_util.dart';
@@ -28,6 +28,16 @@ class _ContactsPageState extends State<ContactsPage> {
   void initState() {
     super.initState();
     _loadUserPhoneNumberAndToken();
+    _loadCurtainCallStatus(); // 초기 상태 불러오기
+  }
+
+  // SharedPreferences에서 전체 상태 로드하여 모든 토글을 업데이트
+  Future<void> _loadCurtainCallStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isCurtainCallOn = prefs.getBool('isCurtainCallOn') ?? false;
+    setState(() {
+      _switchStates.updateAll((key, value) => isCurtainCallOn); // 모든 토글 상태 일괄 업데이트
+    });
   }
 
   Future<void> _loadUserPhoneNumberAndToken() async {
@@ -89,21 +99,21 @@ class _ContactsPageState extends State<ContactsPage> {
           print("로컬에서 ${contacts.length}개의 연락처를 불러왔습니다.");
 
           final localPhoneNumbers = contacts
-              .map((contact) => contact.phones.isNotEmpty ? contact.phones.first.number : "")
+              .map((contact) => contact.phones.isNotEmpty ? formatPhoneNumber(contact.phones.first.number) : "")
               .where((number) => number.isNotEmpty)
               .toSet();
 
           final dbContacts = await _fetchContactsFromBackend();
           final dbPhoneNumbers = dbContacts.map((contact) => contact['phone']).toSet();
 
-          // List<Contact> 타입을 유지하도록 contactsToAdd를 생성
+          // DB에 없는 연락처만 필터링하여 List<Contact>으로 생성
           final contactsToAdd = contacts.where((contact) {
-            final phoneNumber = contact.phones.isNotEmpty ? contact.phones.first.number : "";
+            final phoneNumber = contact.phones.isNotEmpty ? formatPhoneNumber(contact.phones.first.number) : "";
             return !dbPhoneNumbers.contains(phoneNumber);
           }).toList();
 
           if (contactsToAdd.isNotEmpty) {
-            await _sendContactsToBackend(contactsToAdd);
+            await _sendContactsToBackend(contactsToAdd); // List<Contact> 전달
           }
 
           final contactsToRemove = dbPhoneNumbers.difference(localPhoneNumbers).toList();
@@ -129,7 +139,7 @@ class _ContactsPageState extends State<ContactsPage> {
       userPhoneNumber: contacts.map((contact) {
         return {
           'name': contact.displayName,
-          'phoneNumber': contact.phones.isNotEmpty ? contact.phones.first.number : "",
+          'phoneNumber': contact.phones.isNotEmpty ? formatPhoneNumber(contact.phones.first.number) : "",
           'isCurtainCallOnAndOff': false,
         };
       }).toList(),
@@ -190,9 +200,10 @@ class _ContactsPageState extends State<ContactsPage> {
               final contactData = {
                 "name": contact["name"],
                 "phone": contact["phoneNumber"],
+                "isCurtainCallOnAndOff": contact["isCurtainCallOnAndOff"],
               };
               _contacts.add(contactData);
-              _switchStates[contact["phoneNumber"]] = false;
+              _switchStates[contact["phoneNumber"]] = contact["isCurtainCallOnAndOff"]; // 개새끼 false로 돼있었음
               _nameControllers[contact["phoneNumber"]] = TextEditingController(text: contact["name"]);
               _phoneControllers[contact["phoneNumber"]] = TextEditingController(text: contact["phoneNumber"]);
             }
@@ -324,14 +335,13 @@ class _ContactsPageState extends State<ContactsPage> {
     }
 
     final updatedContact = {
-      'request': {
         phoneNumber: {
           'name': nameController.text,
           'phoneNumber': phoneController.text,
           'isCurtainCallOnAndOff': _switchStates[phoneNumber] ?? false,
         },
-      }
-    };
+      };
+    print(updatedContact);
 
     final url = 'http://10.0.2.2:8080/main/user/phoneAddressBookInfo';
     String? bearerToken = await getBearerTokenFromFile();
@@ -347,11 +357,11 @@ class _ContactsPageState extends State<ContactsPage> {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData["response"]["resultcode"] == "ERR_CREATED_OK") {
+        final responseData = utf8.decode(response.bodyBytes);
+        if (responseData == "Successfull update AddressBook!") {
           print('연락처 정보 업데이트 성공');
         } else {
-          print('연락처 업데이트 오류: ${responseData["response"]["message"]}');
+          print('연락처 업데이트 오류: ${responseData}');
         }
       } else {
         print('연락처 정보 업데이트 실패: ${response.statusCode}');
