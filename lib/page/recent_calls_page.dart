@@ -4,9 +4,9 @@ import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:call_log/call_log.dart';
-import 'utill.dart';
 import 'token_util.dart';
 import 'common_navigation_bar.dart';
+import '../config.dart';
 
 class RecentCallsPage extends StatelessWidget {
   const RecentCallsPage({super.key});
@@ -33,7 +33,7 @@ class RecentCallsPage extends StatelessWidget {
 
       // 서버로 전화번호 리스트 전송
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/main/recentCallHistory'),
+        Uri.parse(Config.apiBaseUrl + '/main/recentCallHistory'),
         headers: {
           'authorization': bearerToken,
           'Content-Type': 'application/json; charset=UTF-8',

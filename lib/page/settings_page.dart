@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_contacts/flutter_contacts.dart'; // 로컬 연락처 관리
+import '../config.dart';
 
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 import 'token_util.dart';
@@ -78,7 +79,7 @@ Future<void> _fetchUserProfileWithConnection() async {
 
   try {
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/main/user'),
+      Uri.parse(Config.apiBaseUrl + '/main/user'),
       headers: {
         'authorization': bearerToken,
       },
@@ -119,7 +120,7 @@ Future<void> _fetchUserProfileWithConnection() async {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/main/user/setAllOn'),
+        Uri.parse(Config.apiBaseUrl + '/main/user/setAllOn'),
         headers: {
           'authorization': bearerToken,
         },
@@ -160,7 +161,7 @@ Future<void> _fetchUserProfileWithConnection() async {
     }
 
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/main/user/rollback'),
+      Uri.parse(Config.apiBaseUrl + '/main/user/rollback'),
       headers: {
         'authorization': bearerToken,
       },

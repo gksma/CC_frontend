@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import '../config.dart';
 
 import 'token_util.dart';
 
@@ -41,7 +42,7 @@ class _UserEditPageState extends State<UserEditPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/main/user'),
+        Uri.parse(Config.apiBaseUrl + '/main/user'),
         headers: {
           'authorization': bearerToken,
         },
@@ -66,7 +67,7 @@ class _UserEditPageState extends State<UserEditPage> {
   }
 
   Future<void> _saveUserProfile() async {
-    final url = Uri.parse('http://10.0.2.2:8080/main/user');
+    final url = Uri.parse(Config.apiBaseUrl + '/main/user');
     final String name = _nameController.text;
     final String phoneNumber = _phoneController.text;
 

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart'; // 추가된 import
 import 'package:http/http.dart' as http;
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'token_util.dart';
+import '../config.dart';
 
 import 'keypad_page.dart';
 
@@ -81,7 +82,7 @@ class _IntroPageState extends State<IntroPage> {
         return;
       }
 
-      final url = Uri.parse('http://10.0.2.2:8080/authorization/configUser');
+      final url = Uri.parse(Config.apiBaseUrl + '/authorization/configUser');
       final response = await http.get(
         url,
         headers: {
@@ -165,7 +166,7 @@ class _IntroPageState extends State<IntroPage> {
 
   // 인증번호 발송 함수
   Future<void> _sendVerificationCode(String phoneNumber) async {
-    final url = Uri.parse('http://10.0.2.2:8080/authorization/send-one');
+    final url = Uri.parse(Config.apiBaseUrl + '/authorization/send-one');
 
     setState(() {
       _isLoading = true;
@@ -208,7 +209,7 @@ class _IntroPageState extends State<IntroPage> {
 
   // 인증번호 확인 함수
   Future<void> _verifyCode(String phoneNumber, String verificationCode) async {
-    final url = Uri.parse('http://10.0.2.2:8080/authorization/configNumber?configNumber=$verificationCode');
+    final url = Uri.parse(Config.apiBaseUrl + '/authorization/configNumber?configNumber=$verificationCode');
 
     if (_isDisposed) return; // dispose 상태면 실행 중단
 
@@ -263,7 +264,7 @@ class _IntroPageState extends State<IntroPage> {
 
 
   Future<void> _saveUserInfo() async {
-    final url = Uri.parse('http://10.0.2.2:8080/main/user');
+    final url = Uri.parse(Config.apiBaseUrl + '/main/user');
 
     setState(() {
       _isLoading = true;
@@ -336,7 +337,7 @@ class _IntroPageState extends State<IntroPage> {
 
   // 전화번호부 정보를 저장하는 API 호출 (로컬 연락처 가져오기)
   Future<void> _savePhoneBookInfo() async {
-    final url = Uri.parse('http://10.0.2.2:8080/main/user/phoneAddressBookInfo');
+    final url = Uri.parse(Config.apiBaseUrl + '/main/user/phoneAddressBookInfo');
 
     // 연락처 권한 요청
     if (await FlutterContacts.requestPermission()) {
