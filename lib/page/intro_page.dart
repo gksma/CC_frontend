@@ -26,6 +26,7 @@ class _IntroPageState extends State<IntroPage> {
   bool _isLoading = false;
   bool _isUser = false;
   int _remainingTime = 0; // 남은 시간(초)
+  bool _isDisposed = false;
   Timer? _timer;
 
   @override
@@ -44,6 +45,10 @@ class _IntroPageState extends State<IntroPage> {
 
     _timer?.cancel(); // 기존 타이머가 있으면 취소
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isDisposed) {
+        _timer?.cancel(); // 언마운트된 상태면 타이머 취소
+        return;
+      }
       if (_remainingTime > 0) {
         setState(() {
           _remainingTime--;
@@ -61,7 +66,6 @@ class _IntroPageState extends State<IntroPage> {
     });
 
     try {
-      // 로컬 파일 시스템에서 Bearer 토큰 가져오기
       String? bearerToken = await getBearerTokenFromFile();
 
       if (bearerToken == null || bearerToken.isEmpty) {
@@ -93,11 +97,13 @@ class _IntroPageState extends State<IntroPage> {
             _isUser = true;
           });
 
-          // 사용자가 맞으면 다른 페이지로 이동
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const KeypadPage()),
-          );
+          // Navigator 호출 전에 mounted 확인
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const KeypadPage()),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -204,6 +210,8 @@ class _IntroPageState extends State<IntroPage> {
   Future<void> _verifyCode(String phoneNumber, String verificationCode) async {
     final url = Uri.parse('http://10.0.2.2:8080/authorization/configNumber?configNumber=$verificationCode');
 
+    if (_isDisposed) return; // dispose 상태면 실행 중단
+
     setState(() {
       _isLoading = true;
     });
@@ -223,28 +231,36 @@ class _IntroPageState extends State<IntroPage> {
         await _saveUserInfo();
         await _savePhoneBookInfo();
 
+        if (_isDisposed) return; // dispose 상태면 실행 중단
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('인증이 완료되었습니다.')),
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const KeypadPage()),
-        );
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const KeypadPage()),
+          );
+        }
       } else {
+        if (_isDisposed) return; // dispose 상태면 실행 중단
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('인증번호가 일치하지 않습니다.')),
         );
       }
     } catch (e) {
+      if (_isDisposed) return; // dispose 상태면 실행 중단
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('네트워크 오류가 발생했습니다.')),
       );
     } finally {
+      if (_isDisposed) return; // dispose 상태면 실행 중단
       setState(() {
         _isLoading = false;
       });
     }
   }
+
 
   Future<void> _saveUserInfo() async {
     final url = Uri.parse('http://10.0.2.2:8080/main/user');
@@ -312,12 +328,11 @@ class _IntroPageState extends State<IntroPage> {
 
   @override
   void dispose() {
-    // 타이머가 활성화되어 있다면 취소
-    if (_timer != null && _timer!.isActive) {
-      _timer!.cancel();
-    }
+    _timer?.cancel(); // 타이머 정리
+    _isDisposed = true; // 언마운트 상태로 설정
     super.dispose();
   }
+
 
   // 전화번호부 정보를 저장하는 API 호출 (로컬 연락처 가져오기)
   Future<void> _savePhoneBookInfo() async {

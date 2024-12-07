@@ -9,7 +9,6 @@ import 'package:flutter_contacts/flutter_contacts.dart'; // 로컬 연락처 관
 
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 import 'token_util.dart';
-import 'utill.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
