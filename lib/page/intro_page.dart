@@ -191,7 +191,13 @@ class _IntroPageState extends State<IntroPage> {
           _showVerificationField = true;
         });
         _startCountdown();
-      } else {
+      }
+      else if (response.statusCode == 500) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미 등록된 사용자입니다.')),
+        );
+      }
+       else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('인증번호 전송에 실패했습니다. 다시 시도해주세요.')),
         );

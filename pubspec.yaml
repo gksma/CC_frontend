@@ -30,11 +30,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  permission_handler : ^10.2.0
+  permission_handler : ^11.3.1
   url_launcher : ^6.0.20
   shared_preferences : ^2.0.11
-  http : ^0.13.3
-  android_intent_plus: ^2.0.2
+  http : ^1.2.2
+  android_intent_plus: ^5.2.0
   flutter_contacts : ^1.1.9
   flutter_phone_direct_caller : ^2.1.1
   fluttertoast : ^8.2.8
@@ -58,7 +58,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

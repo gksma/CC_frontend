@@ -44,3 +44,6 @@ app.*.map.json
 
 # url private으로
 lib/config.dart
+
+# JKS keystore
+android/key.properties
