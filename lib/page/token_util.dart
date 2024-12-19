@@ -21,7 +21,7 @@ Future<String?> getBearerTokenFromFile() async {
     final file = File(path.join(directory.path, 'bearer_token.txt'));
     if (await file.exists()) {
       final token = await file.readAsString();
-      print("불러온 Bearer 토큰: $token");
+      // print("불러온 Bearer 토큰: $token");
       return token;
     } else {
       print("Bearer 토큰이 저장된 파일이 없습니다.");
@@ -39,7 +39,7 @@ Future<void> savePhoneNumberToFile(String phoneNumber) async {
     final directory = await getApplicationDocumentsDirectory();
     final file = File(path.join(directory.path, 'phone_number.txt'));
     await file.writeAsString(phoneNumber);
-    print("전화번호가 파일에 저장되었습니다. 경로: ${file.path}");
+    // print("전화번호가 파일에 저장되었습니다. 경로: ${file.path}");
   } catch (e) {
     print("전화번호 저장 오류: $e");
   }
@@ -53,7 +53,7 @@ Future<String?> getStoredPhoneNumber() async {
 
     if (await file.exists()) {
       final phoneNumber = await file.readAsString();
-      print("불러온 전화번호: $phoneNumber");
+      // print("불러온 전화번호: $phoneNumber");
       return phoneNumber;
     } else {
       print("전화번호가 저장된 파일이 없습니다.");

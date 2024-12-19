@@ -182,6 +182,7 @@ class _IntroPageState extends State<IntroPage> {
           "phoneNumber": phoneNumber,
         }),
       );
+      // print('뭐가문젠데 ${response.statusCode}');
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -442,161 +443,181 @@ class _IntroPageState extends State<IntroPage> {
     final double fontSize = screenSize.width * 0.045; // 글꼴 크기 조정
     final double buttonHeight = screenSize.height * 0.07;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '내 정보 인증',
-            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
+    return WillPopScope(
+      onWillPop: () async {
+        // 뒤로가기 버튼을 눌렀을 때 앱 종료
+        return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('앱 종료'),
+            content: const Text('앱을 종료하시겠습니까?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('아니요'),
+              ),
+              TextButton(
+                onPressed: () => exit(0),
+                child: const Text('예'),
+              ),
+            ],
           ),
+        ) ?? false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '내 정보 인증',
+              style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
+            ),
+          ),
+          automaticallyImplyLeading: false,
         ),
-        automaticallyImplyLeading: false,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(padding),
-                child: Column(
-                  children: [
-                    SizedBox(height: padding),
-                    Icon(Icons.person_add, size: iconSize),
-                    SizedBox(height: padding),
-                    Container(
-                      padding: EdgeInsets.all(padding),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.all(padding),
+                  child: Column(
+                    children: [
+                      SizedBox(height: padding),
+                      Icon(Icons.person_add, size: iconSize),
+                      SizedBox(height: padding),
+                      Container(
+                        padding: EdgeInsets.all(padding),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(32),
                         ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '이름 >',
-                                  style: TextStyle(
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _nameController,
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
-                                    ),
-                                    style: TextStyle(fontSize: fontSize),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 16.0, thickness: 1),
-                            Row(
-                              children: [
-                                Text(
-                                  '전화번호 >',
-                                  style: TextStyle(
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _phoneController,
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 5),
-                                    ),
-                                    style: TextStyle(fontSize: fontSize),
-                                    keyboardType: TextInputType.phone,
-                                    onChanged: _onPhoneChanged,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8.0),
-                            if (_showVerificationField)
-                              Column(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: padding, horizontal: margin),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
                                 children: [
-                                  const Divider(height: 16.0, thickness: 1),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '인증번호 >',
-                                        style: TextStyle(
-                                          fontSize: fontSize,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _verificationCodeController,
-                                          decoration: const InputDecoration(
-                                            border: InputBorder.none,
-                                            contentPadding: EdgeInsets.symmetric(vertical: 5),
-                                          ),
-                                          style: TextStyle(fontSize: fontSize),
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // 인증번호 입력칸 오른쪽에 카운트다운 표시
-                                      if (_remainingTime > 0)
-                                        Text(
-                                          _formatTime(_remainingTime),
-                                          style: TextStyle(fontSize: fontSize, color: Colors.red),
-                                        ),
-                                    ],
+                                  Text(
+                                    '이름 >',
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                  const SizedBox(height: 8.0),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _nameController,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                      ),
+                                      style: TextStyle(fontSize: fontSize),
+                                    ),
+                                  ),
                                 ],
                               ),
-                          ],
+                              const Divider(height: 16.0, thickness: 1),
+                              Row(
+                                children: [
+                                  Text(
+                                    '전화번호 >',
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _phoneController,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                      ),
+                                      style: TextStyle(fontSize: fontSize),
+                                      keyboardType: TextInputType.phone,
+                                      onChanged: _onPhoneChanged,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8.0),
+                              if (_showVerificationField)
+                                Column(
+                                  children: [
+                                    const Divider(height: 16.0, thickness: 1),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '인증번호 >',
+                                          style: TextStyle(
+                                            fontSize: fontSize,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _verificationCodeController,
+                                            decoration: const InputDecoration(
+                                              border: InputBorder.none,
+                                              contentPadding: EdgeInsets.symmetric(vertical: 5),
+                                            ),
+                                            style: TextStyle(fontSize: fontSize),
+                                            keyboardType: TextInputType.number,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        if (_remainingTime > 0)
+                                          Text(
+                                            _formatTime(_remainingTime),
+                                            style: TextStyle(fontSize: fontSize, color: Colors.red),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                  ],
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: padding), // 아래쪽 여백 추가
-                    // 재인증 버튼
-                    if (_showVerificationField)
+                      SizedBox(height: padding),
+                      if (_showVerificationField)
+                        SizedBox(
+                          width: double.infinity,
+                          height: buttonHeight,
+                          child: ElevatedButton(
+                            onPressed: _resendVerificationCode,
+                            child: Text('재인증', style: TextStyle(fontSize: fontSize)),
+                          ),
+                        ),
+                      SizedBox(height: padding),
                       SizedBox(
                         width: double.infinity,
                         height: buttonHeight,
                         child: ElevatedButton(
-                          onPressed: _resendVerificationCode,
-                          child: Text('재인증', style: TextStyle(fontSize: fontSize)),
+                          onPressed: _showVerificationField
+                              ? () => _verifyCode(
+                                    _phoneController.text,
+                                    _verificationCodeController.text,
+                                  )
+                              : _saveContact,
+                          child: Text(_showVerificationField ? '확인' : '인증', style: TextStyle(fontSize: fontSize)),
                         ),
                       ),
-                    SizedBox(height: padding), // 여백 추가
-                    SizedBox(
-                      width: double.infinity,
-                      height: buttonHeight,
-                      child: ElevatedButton(
-                        onPressed: _showVerificationField
-                            ? () => _verifyCode(
-                                  _phoneController.text,
-                                  _verificationCodeController.text,
-                                )
-                            : _saveContact,
-                        child: Text(_showVerificationField ? '확인' : '인증', style: TextStyle(fontSize: fontSize)),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }
