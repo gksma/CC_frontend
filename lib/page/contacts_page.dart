@@ -418,124 +418,127 @@ class _ContactsPageState extends State<ContactsPage> {
     final double padding = screenSize.width * 0.04;
     final double fontSize = screenSize.width * 0.04;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '연락처',
-            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.5),
+    return WillPopScope(
+      onWillPop: () => onWillPop(context), // util.dart의 onWillPop 메소드 호출
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '연락처',
+              style: TextStyle(color: Colors.black, fontSize: fontSize * 1.5),
+            ),
           ),
+          automaticallyImplyLeading: false,
         ),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          SizedBox(height: padding),
-          Icon(Icons.contacts, size: iconSize),
-          SizedBox(height: padding),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: padding),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: '이름 또는 전화번호 검색',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _filteredContacts = _contacts.where((contact) {
-                    final name = contact['name']!.toLowerCase();
-                    final phone = contact['phone']!.replaceAll('-', '').toLowerCase();
-                    return name.contains(value.toLowerCase()) || phone.contains(value);
-                  }).toList();
-                });
-              },
-            ),
-          ),
-          SizedBox(height: padding),
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(padding),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32 * (screenSize.width / 375)),
-                  topRight: Radius.circular(32 * (screenSize.width / 375)),
-                ),
-              ),
-              child: Container(
-                margin: const EdgeInsets.all(0.0),
-                padding: EdgeInsets.symmetric(vertical: padding, horizontal: padding),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16 * (screenSize.width / 375)),
-                ),
-                child: ListView.separated(
-                  itemCount: _filteredContacts.length,
-                  separatorBuilder: (context, index) => Divider(
-                    color: Colors.grey[300],
-                    thickness: 1,
+        body: Column(
+          children: [
+            SizedBox(height: padding),
+            Icon(Icons.contacts, size: iconSize),
+            SizedBox(height: padding),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: padding),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: '이름 또는 전화번호 검색',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  itemBuilder: (context, index) {
-                    final contact = _filteredContacts[index];
-                    final phoneNumber = contact['phone']!;
-                    final isSwitched = _switchStates[phoneNumber] ?? false;
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _filteredContacts = _contacts.where((contact) {
+                      final name = contact['name']!.toLowerCase();
+                      final phone = contact['phone']!.replaceAll('-', '').toLowerCase();
+                      return name.contains(value.toLowerCase()) || phone.contains(value);
+                    }).toList();
+                  });
+                },
+              ),
+            ),
+            SizedBox(height: padding),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(padding),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32 * (screenSize.width / 375)),
+                    topRight: Radius.circular(32 * (screenSize.width / 375)),
+                  ),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.all(0.0),
+                  padding: EdgeInsets.symmetric(vertical: padding, horizontal: padding),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16 * (screenSize.width / 375)),
+                  ),
+                  child: ListView.separated(
+                    itemCount: _filteredContacts.length,
+                    separatorBuilder: (context, index) => Divider(
+                      color: Colors.grey[300],
+                      thickness: 1,
+                    ),
+                    itemBuilder: (context, index) {
+                      final contact = _filteredContacts[index];
+                      final phoneNumber = contact['phone']!;
+                      final isSwitched = _switchStates[phoneNumber] ?? false;
 
-                    return ListTile(
-                      title: _isEditing[phoneNumber] == true
-                          ? TextField(
-                              controller: _nameControllers[phoneNumber],
-                              decoration: const InputDecoration(
-                                hintText: '이름을 입력하세요',
+                      return ListTile(
+                        title: _isEditing[phoneNumber] == true
+                            ? TextField(
+                                controller: _nameControllers[phoneNumber],
+                                decoration: const InputDecoration(
+                                  hintText: '이름을 입력하세요',
+                                ),
+                              )
+                            : Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
+                        subtitle: _isEditing[phoneNumber] == true
+                            ? TextField(
+                                controller: _phoneControllers[phoneNumber],
+                                decoration: const InputDecoration(
+                                  hintText: '전화번호를 입력하세요',
+                                ),
+                              )
+                            : Text(
+                                phoneNumber,
+                                style: TextStyle(fontSize: fontSize),
                               ),
-                            )
-                          : Text(contact['name']!, style: TextStyle(fontSize: fontSize)),
-                      subtitle: _isEditing[phoneNumber] == true
-                          ? TextField(
-                              controller: _phoneControllers[phoneNumber],
-                              decoration: const InputDecoration(
-                                hintText: '전화번호를 입력하세요',
-                              ),
-                            )
-                          : Text(
-                              phoneNumber,
-                              style: TextStyle(fontSize: fontSize),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(_isEditing[phoneNumber] == true ? Icons.save : Icons.edit),
+                              onPressed: () {
+                                if (_isEditing[phoneNumber] == true) {
+                                  _saveEditedContact(phoneNumber);
+                                } else {
+                                  _toggleEditMode(phoneNumber);
+                                }
+                              },
                             ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(_isEditing[phoneNumber] == true ? Icons.save : Icons.edit),
-                            onPressed: () {
-                              if (_isEditing[phoneNumber] == true) {
-                                _saveEditedContact(phoneNumber);
-                              } else {
-                                _toggleEditMode(phoneNumber);
-                              }
-                            },
-                          ),
-                          Switch(
-                            value: _switchStates[phoneNumber] ?? false,
-                            onChanged: (value) {
-                              _toggleSwitch(phoneNumber, value);
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                            Switch(
+                              value: _switchStates[phoneNumber] ?? false,
+                              onChanged: (value) {
+                                _toggleSwitch(phoneNumber, value);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 0),
       ),
-      bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 0),
     );
   }
 }

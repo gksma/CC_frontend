@@ -10,6 +10,7 @@ import '../config.dart';
 
 import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
 import 'token_util.dart';
+import 'utill.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -294,119 +295,122 @@ Future<void> _fetchUserProfileWithConnection() async {
     final double fontSize = screenSize.width * 0.045;
     final double buttonFontSize = screenSize.width * 0.04;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '설정',
-            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit, color: Colors.black, size: iconSize * 0.4),
-            onPressed: () {
-              Navigator.pushNamed(context, '/user_edit');
-            },
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Padding(
-            padding: EdgeInsets.all(padding),
-            child: Column(
-              children: [
-                SizedBox(height: padding),
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.person, size: iconSize),
-                      SizedBox(height: padding),
-                      Text(_userName, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
-                      Text(_userPhone, style: TextStyle(fontSize: buttonFontSize)),
-                    ],
-                  ),
-                ),
-                SizedBox(height: padding * 2),
-                // 연락처 원상복구 카드
-                Card(
-                  color: Colors.grey[100],
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: EdgeInsets.all(padding),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('연락처 원상복구', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
-                              Text('숨겨진 사용자의 정보들 원상복구', style: TextStyle(fontSize: buttonFontSize)),
-                              Text('(앱 삭제 시 반드시 OFF 후 삭제)', style: TextStyle(fontSize: buttonFontSize, color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                        OutlinedButton(
-                          onPressed: _showConfirmationDialogForRollback, // 버튼을 누르면 확인 다이얼로그 표시
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.red),
-                          ),
-                          child: Text(
-                            '복구',
-                            style: TextStyle(color: Colors.red, fontSize: buttonFontSize),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Card(
-                  color: Colors.grey[100],
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: EdgeInsets.all(padding),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('커튼콜 전체 ON', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
-                              Text('연락처 전체 기능 ON', style: TextStyle(fontSize: buttonFontSize)),
-                            ],
-                          ),
-                        ),
-                        OutlinedButton(
-                          onPressed: _showConfirmationDialogForOn, // 버튼을 누르면 확인 다이얼로그 표시
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.green),
-                          ),
-                          child: Text(
-                            'ON',
-                            style: TextStyle(color: Colors.green, fontSize: buttonFontSize),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    return WillPopScope(
+      onWillPop: () => onWillPop(context), // util.dart의 onWillPop 메소드 호출
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '설정',
+              style: TextStyle(color: Colors.black, fontSize: fontSize * 1.2),
             ),
-          );
-        },
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.edit, color: Colors.black, size: iconSize * 0.4),
+              onPressed: () {
+                Navigator.pushNamed(context, '/user_edit');
+              },
+            ),
+          ],
+          automaticallyImplyLeading: false,
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return Padding(
+              padding: EdgeInsets.all(padding),
+              child: Column(
+                children: [
+                  SizedBox(height: padding),
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.person, size: iconSize),
+                        SizedBox(height: padding),
+                        Text(_userName, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                        Text(_userPhone, style: TextStyle(fontSize: buttonFontSize)),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: padding * 2),
+                  // 연락처 원상복구 카드
+                  Card(
+                    color: Colors.grey[100],
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: EdgeInsets.all(padding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('연락처 원상복구', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                                Text('숨겨진 사용자의 정보들 원상복구', style: TextStyle(fontSize: buttonFontSize)),
+                                Text('(앱 삭제 시 반드시 OFF 후 삭제)', style: TextStyle(fontSize: buttonFontSize, color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton(
+                            onPressed: _showConfirmationDialogForRollback, // 버튼을 누르면 확인 다이얼로그 표시
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.red),
+                            ),
+                            child: Text(
+                              '복구',
+                              style: TextStyle(color: Colors.red, fontSize: buttonFontSize),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Card(
+                    color: Colors.grey[100],
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: EdgeInsets.all(padding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('커튼콜 전체 ON', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold)),
+                                Text('연락처 전체 기능 ON', style: TextStyle(fontSize: buttonFontSize)),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton(
+                            onPressed: _showConfirmationDialogForOn, // 버튼을 누르면 확인 다이얼로그 표시
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.green),
+                            ),
+                            child: Text(
+                              'ON',
+                              style: TextStyle(color: Colors.green, fontSize: buttonFontSize),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 3), // 설정 페이지가 선택된 상태로 설정
       ),
-      bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 3), // 설정 페이지가 선택된 상태로 설정
     );
   }
 }

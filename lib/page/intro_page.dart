@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'token_util.dart';
 import '../config.dart';
+import 'utill.dart';
 
 import 'keypad_page.dart';
 
@@ -182,7 +183,6 @@ class _IntroPageState extends State<IntroPage> {
           "phoneNumber": phoneNumber,
         }),
       );
-      // print('뭐가문젠데 ${response.statusCode}');
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -444,26 +444,7 @@ class _IntroPageState extends State<IntroPage> {
     final double buttonHeight = screenSize.height * 0.07;
 
     return WillPopScope(
-      onWillPop: () async {
-        // 뒤로가기 버튼을 눌렀을 때 앱 종료
-        return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('앱 종료'),
-            content: const Text('앱을 종료하시겠습니까?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('아니요'),
-              ),
-              TextButton(
-                onPressed: () => exit(0),
-                child: const Text('예'),
-              ),
-            ],
-          ),
-        ) ?? false;
-      },
+      onWillPop: () => onWillPop(context), // util.dart의 onWillPop 메소드 호출
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -575,6 +556,7 @@ class _IntroPageState extends State<IntroPage> {
                                           ),
                                         ),
                                         const SizedBox(width: 8),
+                                        // 인증번호 입력칸 오른쪽에 카운트다운 표시
                                         if (_remainingTime > 0)
                                           Text(
                                             _formatTime(_remainingTime),
@@ -589,7 +571,8 @@ class _IntroPageState extends State<IntroPage> {
                           ),
                         ),
                       ),
-                      SizedBox(height: padding),
+                      SizedBox(height: padding), // 아래쪽 여백 추가
+                      // 재인증 버튼
                       if (_showVerificationField)
                         SizedBox(
                           width: double.infinity,
@@ -599,7 +582,7 @@ class _IntroPageState extends State<IntroPage> {
                             child: Text('재인증', style: TextStyle(fontSize: fontSize)),
                           ),
                         ),
-                      SizedBox(height: padding),
+                      SizedBox(height: padding), // 여백 추가
                       SizedBox(
                         width: double.infinity,
                         height: buttonHeight,

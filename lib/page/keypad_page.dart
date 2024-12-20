@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'common_navigation_bar.dart';  // 통일된 하단 네비게이션 import
+import 'common_navigation_bar.dart'; // 통일된 하단 네비게이션 import
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'utill.dart'; // onWillPop 메소드 import
 
 class KeypadPage extends StatefulWidget {
   const KeypadPage({super.key});
@@ -78,9 +79,7 @@ class _KeypadPageState extends State<KeypadPage> {
     return number;
   }
 
-
   Future<void> _makePhoneCall(String phoneNumber) async {
-    // await requestPhonePermission();  // 권한 요청
     bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
     if (res == null || !res) {
       throw 'Could not make the call to $phoneNumber';
@@ -88,15 +87,13 @@ class _KeypadPageState extends State<KeypadPage> {
   }
 
   void _makeVideoCall(String phoneNumber) async {
-    final Uri url = Uri(scheme: 'tel', path: phoneNumber);  // 혹은 video call URI 스킴
+    final Uri url = Uri(scheme: 'tel', path: phoneNumber); // 혹은 video call URI 스킴
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
       throw 'Could not launch $url';
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -106,109 +103,117 @@ class _KeypadPageState extends State<KeypadPage> {
     final double iconButtonSize = screenSize.width * 0.12;
     final double gridSpacing = screenSize.width * 0.13;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        toolbarHeight: 0,
-      ),
-
-      body: Column(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: screenSize.width * 0.05, horizontal: screenSize.width * 0.05),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: TextField(
-                    controller: _controller,
-                    readOnly: true,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: dialPadFontSize),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
+    return WillPopScope(
+      onWillPop: () => onWillPop(context), // util.dart의 onWillPop 메소드 호출
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          toolbarHeight: 0,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    vertical: screenSize.width * 0.05,
+                    horizontal: screenSize.width * 0.05,
+                  ),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: TextField(
+                      controller: _controller,
+                      readOnly: true,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: dialPadFontSize),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            flex: 5,
-            child: GridView.builder(
-              padding: EdgeInsets.symmetric(horizontal: gridSpacing, vertical: screenSize.height * 0.02),
-              itemCount: 12,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: gridSpacing,
-                mainAxisSpacing: screenSize.height * 0.04,
-                childAspectRatio: 1,
+            Expanded(
+              flex: 5,
+              child: GridView.builder(
+                padding: EdgeInsets.symmetric(
+                  horizontal: gridSpacing,
+                  vertical: screenSize.height * 0.02,
+                ),
+                itemCount: 12,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: gridSpacing,
+                  mainAxisSpacing: screenSize.height * 0.04,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  if (index < 9) {
+                    return DialButton(
+                      text: '${index + 1}',
+                      subText: getDialButtonText(index + 1),
+                      dialPadFontSize: dialPadFontSize,
+                      subTextFontSize: subTextFontSize,
+                      onPressed: () => _onKeyPress('${index + 1}'),
+                    );
+                  } else if (index == 9) {
+                    return DialButton(
+                      text: '*',
+                      subText: '',
+                      dialPadFontSize: dialPadFontSize,
+                      subTextFontSize: subTextFontSize,
+                      onPressed: () => _onKeyPress('*'),
+                    );
+                  } else if (index == 10) {
+                    return DialButton(
+                      text: '0',
+                      subText: '+',
+                      dialPadFontSize: dialPadFontSize,
+                      subTextFontSize: subTextFontSize,
+                      onPressed: () => _onKeyPress('0'),
+                    );
+                  } else {
+                    return DialButton(
+                      text: '#',
+                      subText: '',
+                      dialPadFontSize: dialPadFontSize,
+                      subTextFontSize: subTextFontSize,
+                      onPressed: () => _onKeyPress('#'),
+                    );
+                  }
+                },
               ),
-              itemBuilder: (context, index) {
-                if (index < 9) {
-                  return DialButton(
-                    text: '${index + 1}',
-                    subText: getDialButtonText(index + 1),
-                    dialPadFontSize: dialPadFontSize,
-                    subTextFontSize: subTextFontSize,
-                    onPressed: () => _onKeyPress('${index + 1}'),
-                  );
-                } else if (index == 9) {
-                  return DialButton(
-                    text: '*',
-                    subText: '',
-                    dialPadFontSize: dialPadFontSize,
-                    subTextFontSize: subTextFontSize,
-                    onPressed: () => _onKeyPress('*'),
-                  );
-                } else if (index == 10) {
-                  return DialButton(
-                    text: '0',
-                    subText: '+',
-                    dialPadFontSize: dialPadFontSize,
-                    subTextFontSize: subTextFontSize,
-                    onPressed: () => _onKeyPress('0'),
-                  );
-                } else {
-                  return DialButton(
-                    text: '#',
-                    subText: '',
-                    dialPadFontSize: dialPadFontSize,
-                    subTextFontSize: subTextFontSize,
-                    onPressed: () => _onKeyPress('#'),
-                  );
-                }
-              },
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(screenSize.width * 0.04),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.video_call, size: iconButtonSize),
-                  onPressed: () {
-                    _makeVideoCall(_controller.text);
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.call, size: iconButtonSize, color: Colors.green),
-                  onPressed: () {
-                    _makePhoneCall(_controller.text);
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.arrow_back, size: iconButtonSize),
-                  onPressed: () => _onKeyPress('back'),
-                ),
-              ],
+            Padding(
+              padding: EdgeInsets.all(screenSize.width * 0.04),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.video_call, size: iconButtonSize),
+                    onPressed: () {
+                      _makeVideoCall(_controller.text);
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.call, size: iconButtonSize, color: Colors.green),
+                    onPressed: () {
+                      _makePhoneCall(_controller.text);
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, size: iconButtonSize),
+                    onPressed: () => _onKeyPress('back'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const CommonBottomNavigationBar(currentIndex: 1), // 키패드 페이지가 선택된 상태로 설정
-        ],
+            const CommonBottomNavigationBar(currentIndex: 1), // 키패드 페이지가 선택된 상태로 설정
+          ],
+        ),
       ),
     );
   }

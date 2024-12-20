@@ -7,6 +7,7 @@ import 'package:call_log/call_log.dart';
 import 'token_util.dart';
 import 'common_navigation_bar.dart';
 import '../config.dart';
+import 'utill.dart';
 
 class RecentCallsPage extends StatelessWidget {
   const RecentCallsPage({super.key});
@@ -93,50 +94,53 @@ class RecentCallsPage extends StatelessWidget {
     final double padding = screenSize.width * 0.04;
     final double fontSize = screenSize.width * 0.045;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '최근 기록',
-            style: TextStyle(color: Colors.black, fontSize: fontSize * 1.5),
+    return WillPopScope(
+      onWillPop: () => onWillPop(context), // util.dart의 onWillPop 메소드 호출
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '최근 기록',
+              style: TextStyle(color: Colors.black, fontSize: fontSize * 1.5),
+            ),
+          ),
+          automaticallyImplyLeading: false,
+        ),
+        body: Padding(
+          padding: EdgeInsets.all(padding),
+          child: FutureBuilder<List<CallRecordData>>(
+            future: fetchCallRecords(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                print(snapshot.error);
+                return const Center(child: Text('Failed to load call records'));
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No call records found'));
+              } else {
+                final callRecords = snapshot.data!;
+                return ListView.builder(
+                  itemCount: callRecords.length,
+                  itemBuilder: (context, index) {
+                    final callRecord = callRecords[index];
+                    return CallRecord(
+                      name: callRecord.name,
+                      phoneNumber: callRecord.phoneNumber,
+                      dateTime: callRecord.dateTime,
+                      isMissed: callRecord.isMissed,
+                    );
+                  },
+                );
+              }
+            },
           ),
         ),
-        automaticallyImplyLeading: false,
+        bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 2),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(padding),
-        child: FutureBuilder<List<CallRecordData>>(
-          future: fetchCallRecords(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              print(snapshot.error);
-              return const Center(child: Text('Failed to load call records'));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No call records found'));
-            } else {
-              final callRecords = snapshot.data!;
-              return ListView.builder(
-                itemCount: callRecords.length,
-                itemBuilder: (context, index) {
-                  final callRecord = callRecords[index];
-                  return CallRecord(
-                    name: callRecord.name,
-                    phoneNumber: callRecord.phoneNumber,
-                    dateTime: callRecord.dateTime,
-                    isMissed: callRecord.isMissed,
-                  );
-                },
-              );
-            }
-          },
-        ),
-      ),
-      bottomNavigationBar: const CommonBottomNavigationBar(currentIndex: 2),
     );
   }
 }
