@@ -138,7 +138,7 @@ class _IntroPageState extends State<IntroPage> {
     try {
       final directory = await getApplicationDocumentsDirectory(); // 경로 수정
       final file = File(path.join(directory.path, 'user_name.txt'));
-      await file.writeAsString(userName);
+      await file.writeAsString(userName, encoding: utf8);
       print("사용자 이름이 파일에 저장되었습니다. 경로: ${file.path}");
     } catch (e) {
       print("파일 저장 오류: $e");
@@ -152,7 +152,7 @@ class _IntroPageState extends State<IntroPage> {
       final file = File(path.join(directory.path, 'user_name.txt'));
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
-        final userName = await file.readAsString();
+        final userName = await file.readAsString(encoding: utf8);
         print('저장된 사용자 이름: $userName');
         return userName;
       } else {

@@ -194,7 +194,7 @@ class _ContactsPageState extends State<ContactsPage> {
 
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = json.decode(utf8.decode(response.bodyBytes));
         if (data["response"] != null && data["response"][userPhoneNumber] != null) {
           final List<dynamic> contactList = data["response"][userPhoneNumber];
 
@@ -269,7 +269,7 @@ class _ContactsPageState extends State<ContactsPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = json.decode(utf8.decode(response.bodyBytes));
         print("백엔드로부터 가져온 데이터: $data");
 
         if (data != null && data is List && data.isNotEmpty) {

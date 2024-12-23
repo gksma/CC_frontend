@@ -49,7 +49,7 @@ class _UserEditPageState extends State<UserEditPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = json.decode(utf8.decode(response.bodyBytes));
         if (mounted) {
           setState(() {
             _userName = data['nickName'];

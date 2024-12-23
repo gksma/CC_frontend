@@ -49,7 +49,7 @@ class _SettingsPageState extends State<SettingsPage> {
       final file = File(path.join(directory.path, 'user_name.txt'));
       // 파일이 존재하는지 확인하고, 파일이 있으면 내용을 읽음
       if (await file.exists()) {
-        final userName = await file.readAsString();
+        final userName = await file.readAsString(encoding: utf8);
         print('저장된 사용자 이름: $userName');
         return userName;
       } else {
@@ -87,7 +87,7 @@ Future<void> _fetchUserProfileWithConnection() async {
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      final data = json.decode(utf8.decode(response.bodyBytes));
       setState(() {
         _userPhone = data['phoneNumber'];
         _userName = data['nickName'];
